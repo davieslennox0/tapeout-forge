@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TapeOut Forge</title>
+<style>
+  body{font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;max-width:980px;margin:2rem auto;padding:0 1rem;color:#111}
+  h1{font-size:1.4rem} h2{font-size:1.1rem;margin-top:2.5rem;border-top:1px solid #ddd;padding-top:1rem}
+  textarea,input,select{font-family:ui-monospace,monospace;font-size:13px;padding:.4rem}
+  textarea{width:100%;height:5rem} button{padding:.4rem .8rem;cursor:pointer}
+  table{border-collapse:collapse;width:100%;font-size:12.5px} td,th{border:1px solid #ddd;padding:.3rem .5rem;text-align:left}
+  code.hex{word-break:break-all;font-size:11px;display:block;max-width:260px;max-height:3.2em;overflow:auto}
+  .muted{color:#777} .badge{background:#eef;padding:.1rem .4rem;border-radius:3px;font-size:11px}
+  .err{color:#b00020;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1>TapeOut Forge</h1>
+<p class="muted">A compiler for TapeOut circuits on X Layer. UNVALIDATED revenue, honest limits — see README. All computation below runs locally in your browser; nothing is sent anywhere.</p>
+
+<h2>Optimize a circuit</h2>
+<p>
+  Format:
+  <select id="fmt">
+    <option value="expr">boolean expression (a,b,c…; & | ^ !)</option>
+    <option value="csv">truth table (0/1 per line)</option>
+    <option value="hex">netlist hex (needs nIn/nOut)</option>
+  </select>
+  Objective:
+  <select id="obj"><option value="balanced">balanced</option><option value="area">area</option><option value="depth">depth</option></select>
+  nIn <input id="nin" size="2" placeholder="auto"> nOut <input id="nout" size="2" value="1">
+  Cref <input id="cref" size="6" placeholder="optional">
+</p>
+<textarea id="input" placeholder="e.g. (a&b)|(a&c)|(b&c)"></textarea>
+<div><button id="run">Optimize</button> <button id="dl" disabled>Download netlist hex</button></div>
+<div id="out"></div>
+
+<h2>Verified improvements (22/46 real FabX tasks, independently re-verified)</h2>
+<p class="muted">From the FabX replay (<code>docs/FABX-REPLAY.md</code>). Verified twice, independently: (1) this app's own TypeScript engine (<code>packages/core/src/optimize.ts</code> + <code>equivalence.ts</code>) and (2) a from-scratch Python tool with no shared code (<code>packages/core/scripts/verify_beats.py</code>) — 0/22 mismatches between them. "Beat" means our netlist costs strictly less than FabX's own reference under its scoring formula; q is capped at 4x.</p>
+<table id="gallery"><thead><tr><th>task</th><th>nIn/nOut</th><th>Cref</th><th>our C</th><th>q</th><th>netlist hex</th><th>tape-out calldata</th></tr></thead><tbody></tbody></table>
+
+<h2>Registry (on-chain best-circuit lookup)</h2>
+<div id="registry"></div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

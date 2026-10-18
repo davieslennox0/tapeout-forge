@@ -1,10 +1,11 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { Netlist, Gate } from "./netlist.js";
 import type { TruthTable } from "./truthtable.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+// Statically imported (not read via node:fs at runtime) so this module bundles cleanly for
+// both Node (CLI/tests) and the browser (apps/web) from the same source - see docs/NEW.md.
+// Only n=1..3 exist (EXACT_SYNTHESIS_MAX_INPUTS=3; n=4 was abandoned, BUILD.md Phase 1c.4).
+import libN1 from "../data/exact-min-gate-lib-1.json" with { type: "json" };
+import libN2 from "../data/exact-min-gate-lib-2.json" with { type: "json" };
+import libN3 from "../data/exact-min-gate-lib-3.json" with { type: "json" };
 
 /**
  * PHASE 1b UPDATE (docs/NEW.md): now loads exact-min-gate-lib-N.json -
@@ -38,11 +39,13 @@ export interface ExactLibEntry {
 
 const cache = new Map<number, Record<string, ExactLibEntry>>();
 
+const STATIC_LIBS: Record<number, unknown> = { 1: libN1, 2: libN2, 3: libN3 };
+
 function loadLib(nIn: number): Record<string, ExactLibEntry> {
   const cached = cache.get(nIn);
   if (cached) return cached;
-  const path = join(__dirname, "..", "data", `exact-min-gate-lib-${nIn}.json`);
-  const lib = JSON.parse(readFileSync(path, "utf8"));
+  const lib = STATIC_LIBS[nIn] as Record<string, ExactLibEntry> | undefined;
+  if (!lib) throw new Error(`exact.ts: no statically-bundled library for nIn=${nIn}`);
   cache.set(nIn, lib);
   return lib;
 }
