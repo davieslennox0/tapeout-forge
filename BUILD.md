@@ -263,3 +263,17 @@ Read this file and docs/NEW.md, then continue from the first unfinished numbered
 1b.6 LATCH semantics: scan circuits on processor 0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355 (read-only, circuitInfo nState>0). If one exists, compare step()/eval against local simulation and fix the model. If none, say UNVERIFIED.
 1b.7 Harden tests: differential fuzz (random truth tables 3-6 inputs, random netlists up to 200 gates) comparing exhaustive simulation vs optimizer output vs ABC; netlist mutation tests; seeds logged; run in CI.
 1b.8 Update docs/FABX-REPLAY.md: counts over all 100 tasks (beats / ties / loses / skipped), top 10 margins, share of tasks at the 4x cap, and median q. Then print the 3 biggest risks and STOP.
+
+## RESULT OF PHASE 1b (recorded)
+- MAJ3 minimum PROVEN: 6 gates, depth 4 (SAT, UNSAT at 5). On-chain FAB_TST id=65 is already exactly this. Easy-task references are likely optimal; do not claim wins there.
+- CORRECTION: "222 NPN classes" is WRONG for NAND-only cost (negation is not free). Library key = input permutation only, or exact function. n<=3 library is proven; n=4 is optional.
+- Replay stuck at 23/100: on-chain circuit ids carry no task id. Use the task bank records instead.
+
+## PHASE 1c (timebox: ~1 week of effort, then STOP and report)
+1c.0 Run in the Codespace or VPS (>=5 GB free). Never trust ABC output; re-verify every result.
+1c.1 Task bank first. Fetch ONE raw task record from api.fabx.tech (read-only) and print its fields. Report whether it holds a COMPLETE spec (truth table / deterministic function) or only sampled vectors. Replay only tasks with a complete spec. Do NOT fit sampled vectors (that is overfitting, not a valid circuit). List every skipped task with the reason.
+1c.2 Optimizer objective = minimise C directly (A*max(d,1)^3, with-buffers convention). Run ABC area and delay flows plus our own rewriting, keep the best by C. The result must never be worse than the input. Re-check the 4-bit adder, comparator, mux, parity and report C before/after.
+1c.3 LATCH: get step()/state ABI from the processor's verified source on the explorer or the tapemkt repo (read-only, no guessing signatures). Test on circuit id=49. If still unresolved, say UNVERIFIED and exclude sequential tasks from the replay with a count.
+1c.4 n=4 library: one background run, max 2 hours, keyed by input permutation. If incomplete, ship nothing partial and log it.
+1c.5 Update docs/FABX-REPLAY.md: over the replayable tasks give beats / ties / loses / skipped counts, the 10 largest margins with independent re-verification of each beat, the share at the 4x cap, and median q.
+1c.6 Print the 3 biggest risks and STOP.
