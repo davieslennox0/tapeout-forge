@@ -1,0 +1,16 @@
+{
+  "name": "@tapeout-forge/silicon",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@tapeout-forge/core": "workspace:*"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.4"
+  }
+}
