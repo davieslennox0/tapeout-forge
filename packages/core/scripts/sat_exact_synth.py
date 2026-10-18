@@ -339,6 +339,118 @@ def run_direct_full(n, outdir):
     return {"n": n, "classes": None, "functions": len(lib), "failures": fails, "path": path, "mode": "direct-full-proven"}
 
 
+def perm_canonical(tt, n):
+    """Input-PERMUTATION-only canonical form (no negation) - BUILD.md 1c.4's
+    correction to 1b.2's NPN approach. Unlike negation, permuting input wires
+    adds zero gates, so a solved representative's gate count/depth is EXACT
+    (not just a valid upper bound) for every member of its orbit - every
+    expanded entry below is proven:true."""
+    width = 1 << n
+    best, best_perm = None, None
+    for perm in itertools.permutations(range(n)):
+        permuted = 0
+        for x in range(width):
+            src = 0
+            for i in range(n):
+                if (x >> i) & 1:
+                    src |= 1 << perm[i]
+            if (tt >> src) & 1:
+                permuted |= 1 << x
+        if best is None or permuted < best:
+            best, best_perm = permuted, perm
+    return best, best_perm
+
+
+def run_perm_representatives(n, outdir, time_budget_s, progress_every=25):
+    """n=4, BUILD.md 1c.4: permutation-only classes (3984 for n=4), each
+    solved directly and PROVEN (see perm_canonical's note - this is the fix
+    for 1b.2's NPN bug, not another instance of it). Hard-timeboxed: if
+    time_budget_s is exceeded before all classes solve, returns
+    complete=False and writes NOTHING to disk (BUILD.md: "ship nothing
+    partial"). Progress is still logged to stderr throughout."""
+    t0 = time.time()
+    width = 1 << n
+    full = (1 << width) - 1
+    pool_base = 2 + n
+
+    members = {}
+    classes = {}
+    for tt in range(1 << width):
+        canon, perm = perm_canonical(tt, n)
+        members[tt] = (canon, perm)
+        classes.setdefault(canon, []).append(tt)
+    sys.stderr.write(f"n={n}: {len(classes)} permutation-only classes over {1<<width} functions\n")
+
+    class_sol = {}
+    sorted_classes = sorted(classes.keys())
+    for ci, canon in enumerate(sorted_classes):
+        if time.time() - t0 > time_budget_s:
+            sys.stderr.write(
+                f"TIMEOUT at class {ci}/{len(sorted_classes)} after {time.time()-t0:.0f}s - "
+                f"incomplete, shipping NOTHING per BUILD.md 1c.4\n"
+            )
+            return {"n": n, "complete": False, "classes_done": ci, "classes_total": len(sorted_classes),
+                    "elapsed_s": time.time() - t0, "path": None}
+        sol = solve_min_gates(canon, n, width, full, pool_base)
+        if sol["r_min"] is None:
+            sys.stderr.write(f"  class {canon}: NO SOLUTION, skipping\n")
+            continue
+        gates = sol["gates"]
+        rows = simulate(gates, n, width)
+        expected = [(canon >> x) & 1 for x in range(width)]
+        if gates and rows != expected:
+            sys.stderr.write(f"  class {canon}: VERIFICATION FAILED, skipping\n")
+            continue
+        best = best_c_search(canon, n, width, sol["r_min"], gates, pool_base) if gates else {
+            "gates": [], "r": 0, "depth": 0, "c": 0
+        }
+        class_sol[canon] = {"r_min": sol["r_min"], "gates": gates, "best": best}
+        if (ci + 1) % progress_every == 0:
+            elapsed = time.time() - t0
+            rate = elapsed / (ci + 1)
+            eta = rate * (len(sorted_classes) - ci - 1)
+            sys.stderr.write(f"  class {ci+1}/{len(sorted_classes)} solved ({elapsed:.0f}s elapsed, ETA {eta:.0f}s)\n")
+
+    # All classes solved within budget - expand (lossless permutation remap, EXACT for every member).
+    lib = {}
+    fails = 0
+    for tt in range(1 << width):
+        canon, perm = members[tt]
+        sol = class_sol.get(canon)
+        if sol is None:
+            fails += 1
+            continue
+        gates = expand_circuit_for_member(sol["gates"], n, perm, 0, 0) if sol["gates"] else []
+        expected = [(tt >> x) & 1 for x in range(width)]
+        rows = simulate(gates, n, width) if gates else None
+        ok = (not gates) or rows == expected
+        if not gates:
+            ok = base_signal_index(tt, n, width, full) is not None
+        best_gates = expand_circuit_for_member(sol["best"]["gates"], n, perm, 0, 0) if sol["best"]["gates"] else []
+        if best_gates:
+            ok = ok and simulate(best_gates, n, width) == expected
+        if not ok:
+            fails += 1
+            continue
+        entry = entry_from_gates(
+            gates, n, width, tt, True, sol["r_min"], {
+                "gates": best_gates, "r": len(best_gates),
+                "depth": circuit_depth(best_gates, n),
+                "c": compute_c(len(best_gates) or 1, circuit_depth(best_gates, n)) if best_gates else 0,
+            }
+        )
+        entry["unsatAtRMinus1"] = True  # exact for EVERY member, not just the representative - see perm_canonical
+        lib[str(tt)] = entry
+
+    elapsed = time.time() - t0
+    sys.stderr.write(f"n={n} perm-representatives COMPLETE: {len(lib)}/{1<<width} OK, {fails} fails ({elapsed:.0f}s)\n")
+    path = os.path.join(outdir, f"exact-min-gate-lib-{n}.json")
+    with open(path, "w") as f:
+        json.dump(lib, f)
+    return {"n": n, "complete": True, "classes": len(classes), "functions": len(lib),
+            "failures": fails, "elapsed_s": elapsed, "path": path, "mode": "perm-only-proven-exact"}
+
+
 def run_npn_representatives(n, outdir, progress_every=10):
     """n=4: NPN-reduce to classes, solve each REPRESENTATIVE directly
     (proven for that function only), expand to all members (upper bound
@@ -433,6 +545,13 @@ def run_npn_representatives(n, outdir, progress_every=10):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--perm4":
+        outdir = sys.argv[2]
+        budget_s = float(sys.argv[3])
+        r = run_perm_representatives(4, outdir, budget_s)
+        print(json.dumps(r, indent=2))
+        sys.exit(0 if r["complete"] else 1)
+
     outdir = sys.argv[1] if len(sys.argv) > 1 else "."
     ns = [int(x) for x in sys.argv[2:]] if len(sys.argv) > 2 else [1, 2, 3, 4]
     summary = {}
