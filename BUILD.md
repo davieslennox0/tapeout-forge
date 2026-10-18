@@ -277,3 +277,19 @@ Read this file and docs/NEW.md, then continue from the first unfinished numbered
 1c.4 n=4 library: one background run, max 2 hours, keyed by input permutation. If incomplete, ship nothing partial and log it.
 1c.5 Update docs/FABX-REPLAY.md: over the replayable tasks give beats / ties / loses / skipped counts, the 10 largest margins with independent re-verification of each beat, the share at the 4x cap, and median q.
 1c.6 Print the 3 biggest risks and STOP.
+
+## RESULT OF PHASE 1c (recorded)
+- Task bank: 46/100 have complete deterministic specs (combinational, nIn<=8). 54 excluded (8 wide-input combinational + all 46 sequential: sampled vectors only; fitting them is overfitting).
+- Replay on the 46: beat 22, tie 11, lose 13, 0 mismatches. Only task 12 hits the 4x cap. Median q = 1.000 (margins mostly small).
+- UNVERIFIED: LATCH step() ABI; F, K_task, n, m; the with-buffers counting convention beyond Task 8.
+- n=4 exact library abandoned (SAT too slow, tried twice). Do NOT retry that strategy.
+- Benchmark percentages (adder, comparator, mux, parity) are against OUR naive baselines, never claim them as reference wins.
+
+## PHASE 2 (read-only and dry-run; then STOP)
+RULES (extra): No broadcasts. No transactions. No keys. Fork mode (anvil --fork-url) is allowed because it is read-only. Never invent addresses: find them from docs/repos and log the source.
+2.0 Beat analysis: from the replay give the distribution of q among the 22 beats (min/median/max), a breakdown by task difficulty tier and nIn, and the list of the 13 losses with nIn and gate count vs Cref. State plainly how much of the headline is small margins.
+2.1 Independent re-verification: for each of the 22 beats re-check equivalence against the task spec with a SECOND tool (yosys/abc `cec` or an independent Python truth-table check, not our TS code). Any disagreement is a bug: stop and report.
+2.2 Convention check: find every place the with-buffers convention (2 buffer NANDs per output, A=g+6s) could differ from FabX's checker. Look for evidence in api.fabx.tech or the on-chain circuitInfo fields for a circuit of known C (FAB_TST ids). Report which tasks' beat/tie/loss status would flip under the no-buffers convention.
+2.3 Contracts (Foundry, ownerless): ForgeRegistry (specHash -> best verified circuit: processor, circuitId, gates, depth, proofHash, submitter; replace only with strictly better verified). On-chain verification for n<=6 by calling processor.eval on all rows against the stored truth table; larger n = attestation only. First verify the processor ABI (eval, circuitInfo, netlist) against the deployed contract on a fork, log the source for every address. Tests: rejects non-equivalent submission, rejects non-improvement, accepts improvement. Measure gas for n=3..6 on the fork; write docs/GAS-VERIFY.md and set the n limit from the numbers.
+2.4 Tape-out dry run: script that builds the tape-out call for a netlist, runs eth_estimateGas on the fork, and prints calldata, estimated gas and the fee in OKB from config. Never sends. Output a table for the top 5 beats (by q) and 3 representative ties: tape-out cost per circuit and total.
+2.5 Update docs/NEW.md, README skeleton (product, users, revenue placeholders, the required LIMITATION wording), push. Print: what passes, what is UNVERIFIED, 3 biggest risks. STOP.
