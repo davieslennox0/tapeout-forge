@@ -159,6 +159,22 @@ export function validate(nl: Netlist): void {
     }
   };
 
+  // VERIFIED (docs/NEW.md, latch-reconcile branch): a LATCH's `d` operand
+  // may reference ANY valid signal in the whole netlist, including one
+  // defined LATER in gate order (temporal feedback through a register) -
+  // confirmed against the real deployed NetlistVM.sol (`analyze()` bounds
+  // `maxLatchD` against the circuit's FINAL signal count, not the latch's
+  // own position) and corroborated by matching selectors in the live
+  // implementation contract's bytecode. NAND/REF still require strictly
+  // backward references (unchanged - matches the contract's "future
+  // signal" revert for those gate kinds specifically).
+  const totalSignals = 2 + nl.nIn + nGates;
+  const checkLatchD = (sig: Signal, ctx: string) => {
+    if (sig < 0 || sig >= totalSignals) {
+      throw new NetlistError(`${ctx}: signal ${sig} out of range [0,${totalSignals})`);
+    }
+  };
+
   for (let i = 0; i < nGates; i++) {
     const ownSignal = 2 + nl.nIn + i;
     const g = nl.gates[i];
@@ -166,7 +182,7 @@ export function validate(nl: Netlist): void {
       checkRef(g.a, ownSignal, `gate ${i} (NAND.a)`);
       checkRef(g.b, ownSignal, `gate ${i} (NAND.b)`);
     } else if (g.kind === "LATCH") {
-      checkRef(g.d, ownSignal, `gate ${i} (LATCH.d)`);
+      checkLatchD(g.d, `gate ${i} (LATCH.d)`);
     } else {
       for (const s of g.inputs) checkRef(s, ownSignal, `gate ${i} (REF.input)`);
     }

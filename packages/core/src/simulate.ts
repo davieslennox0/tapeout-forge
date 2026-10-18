@@ -25,16 +25,26 @@ export interface TickResult {
 /**
  * Evaluate one combinational tick.
  *
- * LATCH semantics (UNVERIFIED - the wire format 0x01|u24 d has no explicit
- * enable bit, only a data input `d`): a LATCH gate's output signal, as read
- * by later gates in THIS tick, equals its CURRENT stored state (previous
- * tick's value, or the initial state 0). Its `d` operand is evaluated in
- * this same tick (legal per topological order, since d < the latch's own
- * signal) and becomes the stored state for the NEXT tick. In other words:
- * every latch updates unconditionally every tick - there is no gated/enable
- * behaviour, because none is encodable in this format. This is a documented
- * assumption, not a verified fact; re-check step 1.9 against a live LATCH
- * circuit if one can be found.
+ * LATCH semantics (VERIFIED on latch-reconcile branch - docs/NEW.md - against
+ * the real deployed NetlistVM.sol source plus a live eth_call test on FAB_TST
+ * circuit id=49 over 3 ticks, matching exactly): every latch updates
+ * unconditionally every tick (no gated/enable behaviour, none is encodable in
+ * this format) - state[t+1] = f(state[t], inputs). Two passes per tick,
+ * mirroring the real contract's `_execute`:
+ *   Pass 1: every signal (NAND + LATCH Q) is computed in declared order. A
+ *   LATCH's output signal, as read by other gates THIS tick, equals its
+ *   stored state from the PREVIOUS tick (or the initial state on tick 0) -
+ *   it does NOT yet read `d`.
+ *   Pass 2: once every signal this tick is known, each LATCH samples `d` -
+ *   which may reference a signal defined LATER in gate order (a verified
+ *   feedback loop, see netlist.ts's validate()) - to produce the state for
+ *   the NEXT tick.
+ * The live test (id=49, a trivial 1-gate latch whose d is the input pin
+ * itself) confirms the register timing (output=old state, newState=D this
+ * cycle) but does not exercise a genuine *forward* d (pointing at a NAND
+ * gate defined later) since no such circuit has been found on-chain yet -
+ * that specific sub-case rests on the source-code + bytecode-selector
+ * evidence alone, not an end-to-end live match.
  *
  * REF gates are not executed here - flatten them first (not implemented in
  * Phase 1; FabX submissions forbid REF anyway per BUILD.md section 3).
@@ -48,7 +58,10 @@ export function evalTick(nl: Netlist, inputBits: number[], state: LatchState): T
   signals[1] = 1;
   for (let i = 0; i < nl.nIn; i++) signals[2 + i] = inputBits[i] ? 1 : 0;
 
-  const nextLatchValues: number[] = [];
+  // Pass 1: every signal in declared order. LATCH Q = OLD stored state,
+  // set immediately; `d` is recorded but NOT read yet (it may point to a
+  // signal not computed until later in this same pass - verified allowed).
+  const latchD: number[] = [];
   let latchIdx = 0;
   for (let i = 0; i < nl.gates.length; i++) {
     const g = nl.gates[i];
@@ -57,12 +70,15 @@ export function evalTick(nl: Netlist, inputBits: number[], state: LatchState): T
       signals[ownSignal] = signals[g.a] && signals[g.b] ? 0 : 1;
     } else if (g.kind === "LATCH") {
       signals[ownSignal] = state.values[latchIdx] ?? 0;
-      nextLatchValues[latchIdx] = signals[g.d];
+      latchD[latchIdx] = g.d;
       latchIdx++;
     } else {
       throw new NetlistError("evalTick: REF gates are not executable directly - flatten first");
     }
   }
+  // Pass 2: every signal this tick is now known - sample `d` for each
+  // latch's next-state value (mirrors the contract's second pass).
+  const nextLatchValues: number[] = latchD.map((d) => signals[d]);
 
   const firstOut = 2 + nl.nIn + (nl.gates.length - nl.nOut);
   const outputs: number[] = [];
