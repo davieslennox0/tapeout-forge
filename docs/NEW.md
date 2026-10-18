@@ -10,3 +10,4 @@
 - 2026-10-18: 1.5 optimize.ts (dedupe/structural rewriting, Shannon/mux decomposition for nIn>3, small 2-order Pareto front, Cref/4 early-stop).
 - 2026-10-18: 1.6 equivalence.ts (exhaustive <=20 inputs; Tseitin CNF + DPLL SAT miter above - external cadical/minisat detection only, not wired, documented).
 - 2026-10-18: 1.7 cost.ts (gates/depth with and without contract buffers, gas, tape-out fee, FabX C/q) - reproduces BUILD.md's Task 8 numbers exactly both ways (A=6,d=4,C=384 without buffers; A=8,d=6,C=1728=Cref with buffers).
+- 2026-10-18: 1.8 CLI (forge optimize): hex/csv/expr/netlist-hex inputs, area|depth|balanced objectives, --cref/--count-buffers, before/after report, verification method, netlist-hex output. Smoke-tested end-to-end on all 4 input formats.
