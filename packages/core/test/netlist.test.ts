@@ -59,6 +59,35 @@ describe("netlist", () => {
     expect(() => validate(bad)).toThrow(/future or self signal/);
   });
 
+  it("LATCH.d may reference a signal defined LATER in gate order (VERIFIED forward feedback, docs/NEW.md)", () => {
+    const nl: Netlist = {
+      nIn: 1,
+      nOut: 1,
+      gates: [
+        { kind: "LATCH", d: 4 }, // signal 3; d points forward to signal 4
+        { kind: "NAND", a: 2, b: 2 }, // signal 4
+      ],
+    };
+    expect(() => validate(nl)).not.toThrow();
+  });
+
+  it("LATCH.d still rejected if it points past the end of the whole netlist", () => {
+    const nl: Netlist = { nIn: 1, nOut: 1, gates: [{ kind: "LATCH", d: 99 }] };
+    expect(() => validate(nl)).toThrow(/out of range/);
+  });
+
+  it("NAND still rejects a future-signal reference even when a LATCH elsewhere is allowed to", () => {
+    const nl: Netlist = {
+      nIn: 1,
+      nOut: 1,
+      gates: [
+        { kind: "NAND", a: 4, b: 2 }, // signal 3: NAND may NOT reference signal 4 (not yet produced)
+        { kind: "NAND", a: 2, b: 2 }, // signal 4
+      ],
+    };
+    expect(() => validate(nl)).toThrow(/future or self signal/);
+  });
+
   it("LATCH round-trips", () => {
     const nl: Netlist = { nIn: 1, nOut: 1, gates: [{ kind: "LATCH", d: 2 }] };
     const bytes = serialize(nl);

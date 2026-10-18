@@ -7,6 +7,18 @@ import { Netlist, NetlistError } from "./netlist.js";
  * it is a registered value, not part of the same combinational stage as its
  * `d` input. REF gates are not supported (flatten first).
  */
+// NOTE (latch-reconcile branch, docs/NEW.md): now that LATCH.d may point
+// forward (validated in netlist.ts), this function is DELIBERATELY left
+// single-pass, reading depth[g.d] at the point each LATCH is reached - this
+// mirrors the real deployed contract's own `_depth()`, which has the exact
+// same single-pass structure and would equally read a not-yet-computed
+// forward target as its default (0). The goal here is to predict the
+// chain's actual cost number, not a theoretically "more correct" value, so
+// bug-for-bug fidelity with the contract is the right choice IF the
+// contract really has this property - that specific interaction (a LATCH
+// whose `d` forward-references a not-yet-computed NAND) was NOT
+// independently tested against live chain data; no such circuit was found
+// on-chain. UNVERIFIED for that specific sub-case.
 export function circuitDepth(nl: Netlist): number {
   const depth = new Array<number>(2 + nl.nIn + nl.gates.length).fill(0);
   let maxDepth = 0;
