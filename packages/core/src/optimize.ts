@@ -12,11 +12,33 @@ interface BuildCtx {
   nInTotal: number;
 }
 
-function spliceExactSubcircuit(ctx: BuildCtx, sub: Netlist, n: number): number {
+/**
+ * Permutes tt's bits ONCE so that, from then on, bit position i of the
+ * (possibly further cofactored) table always means global variable
+ * `order[i]` - establishing the invariant synthesizeWithOrder's recursive
+ * shift/mask cofactor split (which always strips the CURRENT top bit)
+ * relies on. Without this, decomposing on a non-identity order silently
+ * split the wrong bit (always the raw top bit, regardless of what `order`
+ * said), which a fuzz test caught producing a genuinely wrong circuit.
+ */
+function permuteBits(tt: TruthTable, nIn: number, order: number[]): TruthTable {
+  const width = 1 << nIn;
+  let out = 0n;
+  for (let p = 0; p < width; p++) {
+    let x = 0;
+    for (let i = 0; i < nIn; i++) if ((p >> i) & 1) x |= 1 << order[i];
+    if ((tt >> BigInt(x)) & 1n) out |= 1n << BigInt(p);
+  }
+  return out;
+}
+
+function spliceExactSubcircuit(ctx: BuildCtx, sub: Netlist, n: number, order: number[]): number {
   const localToGlobal = new Map<number, number>();
   localToGlobal.set(0, 0);
   localToGlobal.set(1, 1);
-  for (let i = 0; i < n; i++) localToGlobal.set(2 + i, 2 + i);
+  // Local input i of exact.ts's sub-circuit is, by the permutation invariant
+  // above, global variable order[i] - NOT global input i directly.
+  for (let i = 0; i < n; i++) localToGlobal.set(2 + i, 2 + order[i]);
   for (let i = 0; i < sub.gates.length; i++) {
     const g = sub.gates[i];
     if (g.kind !== "NAND") throw new NetlistError("exact.ts only returns NAND gates");
@@ -50,6 +72,11 @@ function nandGate(ctx: BuildCtx, a: number, b: number): number {
  * signal reused, which is where real gate sharing comes from for larger
  * functions; this is the "rewriting" BUILD.md 1.5 asks for.
  *
+ * CALLER MUST pre-permute `tt` via permuteBits(tt, order.length, order)
+ * before the first call (optimize() does this) - this function's recursive
+ * shift/mask cofactor split assumes bit position i already means global
+ * variable order[i], established once at the top, not re-derived here.
+ *
  * NOTE: memoization is sound only because decomposition always strips the
  * CURRENT LAST-remaining variable in `order` - so a given (remaining-count,
  * tt) pair always depends on exactly the same fixed variable set regardless
@@ -64,10 +91,7 @@ function synthesizeWithOrder(ctx: BuildCtx, order: number[], tt: TruthTable): nu
   let result: number;
   if (n <= EXACT_SYNTHESIS_MAX_INPUTS) {
     const sub = exactSynthesize(n, tt);
-    // exact.ts's sub-circuit assumes inputs are global signals 2..1+n in
-    // order - remap via `order`'s first n entries (already just 0..n-1 at
-    // this depth since we strip from the end of `order`).
-    result = spliceExactSubcircuit(ctx, sub, n);
+    result = spliceExactSubcircuit(ctx, sub, n, order);
   } else {
     const half = 1 << (n - 1);
     const mask = (1n << BigInt(half)) - 1n;
@@ -150,6 +174,37 @@ export function dedupe(nl: Netlist): Netlist {
   return { nIn: nl.nIn, nOut: nl.nOut, gates };
 }
 
+/**
+ * If `tt` is EXACTLY a constant or a single input literal (no actual logic
+ * needed - a pure wire), returns a minimal 2-gate double-negation buffer
+ * netlist directly, bypassing Shannon decomposition entirely. Without this,
+ * optimize() would decompose on every variable down to exact.ts's base case
+ * even for a bare pass-through output, building a full mux tree (8+ gates)
+ * for what should cost ~2 - a real inefficiency this caught in step 1.10's
+ * FabX replay (GC-025, a bit-reverser, whose outputs are bare input
+ * literals), not a cosmetic one.
+ */
+function literalNetlistIfTrivial(nIn: number, tt: TruthTable): Netlist | null {
+  const width = 1 << nIn;
+  const fullMask = (1n << BigInt(width)) - 1n;
+  const bufferFrom = (baseSignal: number): Netlist => ({
+    nIn,
+    nOut: 1,
+    gates: [
+      { kind: "NAND", a: baseSignal, b: baseSignal },
+      { kind: "NAND", a: 2 + nIn, b: 2 + nIn },
+    ],
+  });
+  if (tt === 0n) return bufferFrom(0);
+  if (tt === fullMask) return bufferFrom(1);
+  for (let i = 0; i < nIn; i++) {
+    let v = 0n;
+    for (let x = 0; x < width; x++) if ((x >> i) & 1) v |= 1n << BigInt(x);
+    if (tt === v) return bufferFrom(2 + i);
+  }
+  return null;
+}
+
 /** C = A . max(d,1)^3, A = g + 6s (BUILD.md section 3 / FabX cost formula). s=0 here (combinational only). */
 export function computeC(gates: number, depth: number, latches = 0): number {
   const A = gates + 6 * latches;
@@ -181,6 +236,15 @@ export function optimize(
   opts?: { cref?: number }
 ): OptimizeResult {
   if (nIn > 20) throw new NetlistError("optimize: nIn > 20 impractical for exhaustive truth tables");
+
+  const trivial = literalNetlistIfTrivial(nIn, tt);
+  if (trivial) {
+    const gates = trivial.gates.length;
+    const depth = circuitDepth(trivial);
+    const c = computeC(gates, depth);
+    return { netlist: trivial, objective, gates, depth, c, metCref4xCap: opts?.cref !== undefined ? c <= opts.cref / 4 : null };
+  }
+
   const orders = [
     Array.from({ length: nIn }, (_, i) => i),
     Array.from({ length: nIn }, (_, i) => nIn - 1 - i),
@@ -189,7 +253,8 @@ export function optimize(
   const candidates: { netlist: Netlist; gates: number; depth: number; c: number }[] = [];
   for (const order of orders) {
     const ctx: BuildCtx = { nl: [], memo: new Map(), nInTotal: nIn };
-    const outSig = synthesizeWithOrder(ctx, order, tt);
+    const permutedTt = permuteBits(tt, nIn, order);
+    const outSig = synthesizeWithOrder(ctx, order, permutedTt);
     const built = finalize(ctx, nIn, outSig);
     const deduped = dedupe(built);
     const gates = deduped.gates.length;

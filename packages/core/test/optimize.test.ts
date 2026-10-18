@@ -72,6 +72,19 @@ describe("optimize", () => {
     expect(result.gates).toBeGreaterThan(0);
   });
 
+  it("a bare input literal (pure pass-through, no logic) gets a minimal 2-gate buffer, not a mux tree", () => {
+    // 4-input function that is exactly input 3 (bit3 of x), e.g. one output
+    // bit of a bit-reverser. Without the trivial-literal shortcut this would
+    // Shannon-decompose into an 8-gate mux tree.
+    const rows: number[] = [];
+    for (let x = 0; x < 16; x++) rows.push((x >> 3) & 1);
+    const tt = fromRows(rows);
+    const result = optimize(4, tt, "balanced");
+    expect(result.gates).toBe(2);
+    const gotRows = exhaustiveTruthTable(result.netlist).map((r) => r[0]);
+    expect(gotRows).toEqual(rows);
+  });
+
   it("respects the Cref/4 early-stop signal via metCref4xCap", () => {
     const rows = [0, 0, 0, 1, 0, 1, 1, 1]; // MAJ3 again
     const tt = fromRows(rows);
