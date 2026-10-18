@@ -3,45 +3,244 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TapeOut Forge</title>
+<title>Forgeout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  body{font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;max-width:980px;margin:2rem auto;padding:0 1rem;color:#111}
-  h1{font-size:1.4rem} h2{font-size:1.1rem;margin-top:2.5rem;border-top:1px solid #ddd;padding-top:1rem}
-  textarea,input,select{font-family:ui-monospace,monospace;font-size:13px;padding:.4rem}
-  textarea{width:100%;height:5rem} button{padding:.4rem .8rem;cursor:pointer}
-  table{border-collapse:collapse;width:100%;font-size:12.5px} td,th{border:1px solid #ddd;padding:.3rem .5rem;text-align:left}
-  code.hex{word-break:break-all;font-size:11px;display:block;max-width:260px;max-height:3.2em;overflow:auto}
-  .muted{color:#777} .badge{background:#eef;padding:.1rem .4rem;border-radius:3px;font-size:11px}
-  .err{color:#b00020;white-space:pre-wrap}
+  :root{
+    --bg:#0D0F11; --panel:#14171A; --panel2:#101315; --border:#262B31; --border2:#20252A; --border3:#3A4149;
+    --text:#E8EAEC; --muted:#B7BEC4; --dim:#8D969E; --accent:#E0904F; --accent2:#F2B07A; --ok:#6FCF97;
+    --sans:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace; --display:'Bricolage Grotesque',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.55}
+  a{color:var(--accent);text-decoration:none} a:hover{color:var(--accent2)}
+  button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 32px}
+  h1,h2,h3{font-family:var(--display);letter-spacing:-0.015em;margin:0}
+  .mono{font-family:var(--mono)}
+  .muted{color:var(--muted)} .dim{color:var(--dim)}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:28px}
+  .pill{font-size:13px;color:var(--dim);border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-family:var(--mono)}
+  .badge{font-size:14px;color:var(--text);border:1px solid var(--border3);border-radius:6px;padding:4px 10px;display:inline-block}
+  .badge-ok{color:#0D0F11;background:var(--ok);font-weight:500;border:none}
+  .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border-radius:8px;border:1px solid var(--border3);background:transparent;color:var(--text);font-family:var(--sans);font-size:15px;font-weight:500;cursor:pointer}
+  .btn-primary{background:var(--accent);color:#0D0F11;border:0;font-weight:600}
+  .btn-small{min-height:36px;padding:0 12px;font-size:13px}
+  select,input[type=text],textarea{height:44px;box-sizing:border-box;border-radius:8px;border:1px solid var(--border3);background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;padding:0 12px}
+  textarea{height:auto;min-height:110px;font-family:var(--mono);font-size:15px;padding:12px;resize:vertical}
+  label{font-size:14px;color:var(--muted);display:block;margin-bottom:8px}
+  table{width:100%;border-collapse:collapse}
+  section{scroll-margin-top:24px}
 </style>
 </head>
 <body>
-<h1>TapeOut Forge</h1>
-<p class="muted">A compiler for TapeOut circuits on X Layer. UNVALIDATED revenue, honest limits — see README. All computation below runs locally in your browser; nothing is sent anywhere.</p>
 
-<h2>Optimize a circuit</h2>
-<p>
-  Format:
-  <select id="fmt">
-    <option value="expr">boolean expression (a,b,c…; & | ^ !)</option>
-    <option value="csv">truth table (0/1 per line)</option>
-    <option value="hex">netlist hex (needs nIn/nOut)</option>
-  </select>
-  Objective:
-  <select id="obj"><option value="balanced">balanced</option><option value="area">area</option><option value="depth">depth</option></select>
-  nIn <input id="nin" size="2" placeholder="auto"> nOut <input id="nout" size="2" value="1">
-  Cref <input id="cref" size="6" placeholder="optional">
-</p>
-<textarea id="input" placeholder="e.g. (a&b)|(a&c)|(b&c)"></textarea>
-<div><button id="run">Optimize</button> <button id="dl" disabled>Download netlist hex</button></div>
-<div id="out"></div>
+<header style="border-bottom:1px solid var(--border)">
+  <div class="wrap" style="padding:18px 32px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 32px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="1" y="1" width="26" height="26" rx="6" fill="#E0904F"/><path d="M8 9h7a5 5 0 0 1 0 10H8z" fill="none" stroke="#0D0F11" stroke-width="2.2" stroke-linejoin="round"/><circle cx="21.5" cy="14" r="1.6" fill="#0D0F11"/></svg>
+      <span class="display" style="font-family:var(--display);font-weight:700;font-size:20px">Forgeout</span>
+    </div>
+    <nav aria-label="Primary" style="display:flex;flex-wrap:wrap;gap:8px 28px;font-size:15px">
+      <a href="#how" style="color:var(--muted)">How it works</a>
+      <a href="#optimizer" style="color:var(--muted)">Optimizer</a>
+      <a href="#verified" style="color:var(--muted)">Verified improvements</a>
+      <a href="#registry" style="color:var(--muted)">Registry</a>
+      <a href="#silicon" style="color:var(--muted)">Silicon path</a>
+      <a href="#limits" style="color:var(--muted)">Limits</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="pill">X Layer · 196</span>
+      <a class="btn" href="https://github.com/davieslennox0/tapeout-forge">Source</a>
+    </div>
+  </div>
+</header>
 
-<h2>Verified improvements (22/46 real FabX tasks, independently re-verified)</h2>
-<p class="muted">From the FabX replay (<code>docs/FABX-REPLAY.md</code>). Verified twice, independently: (1) this app's own TypeScript engine (<code>packages/core/src/optimize.ts</code> + <code>equivalence.ts</code>) and (2) a from-scratch Python tool with no shared code (<code>packages/core/scripts/verify_beats.py</code>) — 0/22 mismatches between them. "Beat" means our netlist costs strictly less than FabX's own reference under its scoring formula; q is capped at 4x.</p>
-<table id="gallery"><thead><tr><th>task</th><th>nIn/nOut</th><th>Cref</th><th>our C</th><th>q</th><th>netlist hex</th><th>tape-out calldata</th></tr></thead><tbody></tbody></table>
+<section class="wrap" style="padding:88px 32px 72px;display:flex;flex-wrap:wrap;gap:56px;align-items:center">
+  <div style="flex:1 1 520px;min-width:0">
+    <div class="mono" style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:20px">Circuit compiler for TapeOut</div>
+    <h1 style="font-weight:700;font-size:clamp(40px,6vw,72px);line-height:1.02;margin:0 0 24px">Cheaper circuits,<br>proven identical.</h1>
+    <p class="muted" style="margin:0 0 36px;max-width:520px;font-size:19px">Forgeout takes a spec or a netlist, finds a smaller and shallower version, proves it computes the same function, and hands you the tape-out calldata for X Layer.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:12px">
+      <a class="btn btn-primary" href="#optimizer">Try the optimizer</a>
+      <a class="btn" href="#verified">Browse 22 verified circuits</a>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px 48px;margin-top:56px">
+      <div><div style="font-family:var(--display);font-weight:700;font-size:36px;line-height:1">22 of 46</div><div class="dim" style="font-size:14px;margin-top:6px;max-width:160px">replayable FabX tasks beaten</div></div>
+      <div><div style="font-family:var(--display);font-weight:700;font-size:36px;line-height:1">4.0×</div><div class="dim" style="font-size:14px;margin-top:6px;max-width:160px">top q, at the scoring cap</div></div>
+      <div><div style="font-family:var(--display);font-weight:700;font-size:36px;line-height:1">0</div><div class="dim" style="font-size:14px;margin-top:6px;max-width:170px">mismatches across two independent verifiers</div></div>
+    </div>
+  </div>
+  <div class="panel" style="flex:1 1 400px;min-width:0">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:28px">
+      <div class="mono dim" style="font-size:13px">GC-012</div>
+      <div class="dim" style="font-size:13px">4 inputs · 4 outputs</div>
+    </div>
+    <div style="font-family:var(--display);font-weight:500;font-size:24px;line-height:1.2;margin-bottom:32px">4-to-2 one-hot encoder with error detector</div>
+    <div style="margin-bottom:22px">
+      <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px"><span class="muted">FabX reference</span><span class="mono muted">C 496,000</span></div>
+      <div style="height:14px;border-radius:7px;background:var(--border)"></div>
+    </div>
+    <div style="margin-bottom:32px">
+      <div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:8px"><span>Forgeout</span><span class="mono" style="color:var(--accent)">C 28,672</span></div>
+      <div style="height:14px;border-radius:7px;background:var(--border)"><div style="width:5.8%;height:14px;border-radius:7px;background:var(--accent)"></div></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--border);padding-top:20px">
+      <span class="muted" style="font-size:14px">Equivalent on every input row</span>
+      <span class="mono badge-ok" style="border-radius:6px;padding:4px 10px;font-size:14px">q 4.0× · cap</span>
+    </div>
+  </div>
+</section>
 
-<h2>Registry (on-chain best-circuit lookup)</h2>
-<div id="registry"></div>
+<section id="how" style="border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--panel2)">
+  <div class="wrap" style="padding:72px 32px">
+    <h2 style="font-size:32px;margin-bottom:40px">From netlist to on-chain circuit in three steps</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px">
+      <div style="border-top:2px solid var(--accent);padding-top:20px">
+        <div class="mono" style="font-size:13px;color:var(--accent);margin-bottom:10px">01</div>
+        <h3 style="font-size:20px;font-weight:600;margin-bottom:10px">Optimize</h3>
+        <p class="muted" style="margin:0">Exact synthesis up to three inputs, plus ABC and rewriting for larger functions. Pick area, depth, or balanced, and aim at a reference cost.</p>
+      </div>
+      <div style="border-top:2px solid var(--accent);padding-top:20px">
+        <div class="mono" style="font-size:13px;color:var(--accent);margin-bottom:10px">02</div>
+        <h3 style="font-size:20px;font-weight:600;margin-bottom:10px">Prove</h3>
+        <p class="muted" style="margin:0">Every result is checked against the original, exhaustively up to 20 inputs and by SAT beyond that. A second, separate tool re-checks the published circuits.</p>
+      </div>
+      <div style="border-top:2px solid var(--accent);padding-top:20px">
+        <div class="mono" style="font-size:13px;color:var(--accent);margin-bottom:10px">03</div>
+        <h3 style="font-size:20px;font-weight:600;margin-bottom:10px">Tape out</h3>
+        <p class="muted" style="margin:0">Copy the netlist or the ready-made tape-out calldata, send it from your own wallet, and list the circuit in the registry once it is deployed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="optimizer" class="wrap" style="padding:88px 32px 72px">
+  <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 24px;margin-bottom:32px">
+    <h2 style="font-size:32px">Optimize a circuit</h2>
+    <p class="dim" style="margin:0;font-size:15px">Runs in your browser. Nothing is uploaded.</p>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
+
+    <div class="panel" style="flex:1 1 460px;min-width:0;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;flex-wrap:wrap;gap:16px">
+        <div style="flex:1 1 220px"><label for="fmt">Input format</label>
+          <select id="fmt" style="width:100%">
+            <option value="expr">Boolean expression</option>
+            <option value="csv">Truth table (CSV, 0/1 per line)</option>
+            <option value="hex">Truth table or netlist (hex)</option>
+          </select>
+        </div>
+        <div style="flex:1 1 140px"><label for="obj">Objective</label>
+          <select id="obj" style="width:100%">
+            <option value="balanced">Balanced</option>
+            <option value="area">Area</option>
+            <option value="depth">Depth</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px">
+        <div style="flex:1 1 90px"><label for="nin">nIn <span class="dim">(hex only)</span></label><input id="nin" type="text" placeholder="auto" style="width:100%"></div>
+        <div style="flex:1 1 90px"><label for="nout">nOut <span class="dim">(hex only)</span></label><input id="nout" type="text" value="1" style="width:100%"></div>
+        <div style="flex:1 1 140px"><label for="cref">Reference C <span class="dim">(optional)</span></label><input id="cref" type="text" placeholder="e.g. 1728" class="mono" style="width:100%"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;flex:1">
+        <label for="input">Expression (a, b, c … with &amp; | ^ !) · truth table · or netlist hex</label>
+        <textarea id="input" rows="4" style="flex:1" placeholder="e.g. (a&b)|(a&c)|(b&c)">(a&b)|(a&c)|(b&c)</textarea>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px">
+        <button id="run" type="button" class="btn btn-primary">Optimize</button>
+        <button id="dl" type="button" class="btn" disabled>Download netlist hex</button>
+      </div>
+    </div>
+
+    <div class="panel" style="flex:1 1 520px;min-width:0;display:flex;flex-direction:column;gap:16px">
+      <div style="font-size:18px;font-weight:600">Result</div>
+      <div id="out" class="mono" style="font-size:14px;white-space:pre-wrap;overflow-x:auto"></div>
+    </div>
+  </div>
+</section>
+
+<section id="verified" style="border-top:1px solid var(--border);background:var(--panel2)">
+  <div class="wrap" style="padding:88px 32px 72px">
+    <h2 style="font-size:32px;margin-bottom:12px">22 verified improvements</h2>
+    <p class="muted" id="verified-intro" style="margin:0 0 32px;max-width:760px">Loading…</p>
+
+    <div role="group" aria-label="Rows per page" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px" id="pager"></div>
+
+    <div id="gallery" class="panel" style="padding:0;overflow:hidden"></div>
+    <p class="dim" style="margin:16px 0 0;font-size:14px">q = reference C ÷ our C, capped at 4. C = area × depth³ with two output buffers per output counted. Costs are never converted into reward amounts.</p>
+  </div>
+</section>
+
+<section id="registry" class="wrap" style="padding:88px 32px 72px">
+  <h2 style="font-size:32px;margin-bottom:32px">Registry and on-chain checks</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:24px">
+    <div class="panel" style="flex:1 1 440px;min-width:0;display:flex;flex-direction:column;gap:18px">
+      <div id="registry-panel"></div>
+    </div>
+    <div class="panel" style="flex:1 1 440px;min-width:0;display:flex;flex-direction:column;gap:18px">
+      <div style="font-size:18px;font-weight:600">On-chain verification cost</div>
+      <p class="muted" style="margin:0">Measured on an X Layer fork. The block gas limit is 210,000,000, so six inputs fit with room to spare.</p>
+      <table>
+        <thead><tr style="font-size:13px;color:var(--dim);border-bottom:1px solid var(--border)"><th style="text-align:left;padding-bottom:10px">Inputs</th><th style="text-align:left">Rows checked</th><th style="text-align:right">Gas</th></tr></thead>
+        <tbody class="mono" style="font-size:15px">
+          <tr style="border-bottom:1px solid var(--border2)"><td style="padding:12px 0">3</td><td class="muted">8</td><td style="text-align:right">342,856</td></tr>
+          <tr style="border-bottom:1px solid var(--border2)"><td style="padding:12px 0">4</td><td class="muted">16</td><td style="text-align:right">690,567</td></tr>
+          <tr style="border-bottom:1px solid var(--border2)"><td style="padding:12px 0">5</td><td class="muted">32</td><td style="text-align:right">2,190,727</td></tr>
+          <tr><td style="padding:12px 0">6</td><td class="muted">64</td><td style="text-align:right;color:var(--accent)">7,556,637</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="silicon" style="border-top:1px solid var(--border)">
+  <div class="wrap" style="padding:88px 32px 72px">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-bottom:12px">
+      <h2 style="font-size:32px">Silicon path</h2>
+      <span class="badge">In development</span>
+    </div>
+    <p class="muted" style="margin:0 0 40px;max-width:760px">Forgeout exports a verified circuit as a Tiny Tapeout project: structural Verilog, the template wrapper, and the GitHub Actions flow that produces the layout. A majority-of-three test circuit has already gone through that open-source flow (<a href="https://github.com/davieslennox0/maj3-silicon-spike">davieslennox0/maj3-silicon-spike</a>).</p>
+    <div style="display:flex;flex-wrap:wrap;gap:24px">
+      <div class="panel" style="flex:1 1 520px;min-width:0">
+        <div style="font-size:18px;font-weight:600;margin-bottom:24px">Where a circuit stands</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:20px">
+          <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="width:14px;height:14px;border-radius:50%;background:var(--ok)"></span><div style="flex:1;height:2px;background:var(--border3)"></div></div><div style="font-weight:600">Exported</div><div class="muted" style="font-size:14px">Forgeout produces a ready-to-submit project and a layout hash.</div></div>
+          <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="width:14px;height:14px;border-radius:50%;border:2px solid #5E676F"></span><div style="flex:1;height:2px;background:var(--border3)"></div></div><div style="font-weight:600">Submitted</div><div class="muted" style="font-size:14px">The circuit owner submits it to a Tiny Tapeout shuttle.</div></div>
+          <div><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="width:14px;height:14px;border-radius:50%;border:2px solid #5E676F"></span></div><div style="font-weight:600">Fabricated</div><div class="muted" style="font-size:14px">The shuttle is manufactured and shipped.</div></div>
+        </div>
+        <p class="dim" style="margin:24px 0 0;font-size:14px">Forgeout stops at Exported. The last two steps belong to the circuit owner.</p>
+      </div>
+      <div class="panel" style="flex:1 1 400px;min-width:0;border-color:var(--accent)">
+        <div style="font-size:18px;font-weight:600;margin-bottom:14px">Ordering limitation</div>
+        <p style="margin:0 0 16px">Tapeout-ready export. We have not ordered fabrication. Ordering is a separate paid step that the circuit owner completes on Tiny Tapeout. We do not claim a physical chip exists.</p>
+        <div class="muted" style="font-size:14px">Supported: combinational circuits up to about 500 cells, with references flattened first. Latches only with a documented reset convention. Anything else is refused with a reason.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="limits" style="border-top:1px solid var(--border);background:var(--panel2)">
+  <div class="wrap" style="padding:72px 32px">
+    <h2 style="font-size:32px;margin-bottom:12px">What Forgeout does not claim</h2>
+    <p class="muted" style="margin:0 0 36px;max-width:680px">The numbers above are what was measured. These are the edges of them.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px">
+      <div style="border-left:2px solid var(--border3);padding-left:20px"><h3 style="font-size:17px;font-weight:600;margin-bottom:8px">No reward predictions</h3><p class="muted" style="margin:0;font-size:15px">FabX does not publish all of its reward variables, so Forgeout reports cost C and score q only, never a payout.</p></div>
+      <div style="border-left:2px solid var(--border3);padding-left:20px"><h3 style="font-size:17px;font-weight:600;margin-bottom:8px">46 of 100 tasks replayed</h3><p class="muted" style="margin:0;font-size:15px">The other 54, including every sequential task, ship only sampled test vectors. Fitting those would be overfitting, so they are left out.</p></div>
+      <div style="border-left:2px solid var(--border3);padding-left:20px"><h3 style="font-size:17px;font-weight:600;margin-bottom:8px">The reference still wins 13</h3><p class="muted" style="margin:0;font-size:15px">Exact synthesis is proven only up to three inputs. Above that Forgeout is heuristic and sometimes loses.</p></div>
+      <div style="border-left:2px solid var(--border3);padding-left:20px"><h3 style="font-size:17px;font-weight:600;margin-bottom:8px">No fabrication claim</h3><p class="muted" style="margin:0;font-size:15px">We have not ordered fabrication; that is a separate paid step the circuit owner takes. On this page, tape-out means the on-chain TapeOut circuit unless it says silicon.</p></div>
+    </div>
+  </div>
+</section>
+
+<footer style="border-top:1px solid var(--border)">
+  <div class="wrap" style="padding:28px 32px;display:flex;flex-wrap:wrap;gap:12px 32px;justify-content:space-between;font-size:14px" class="dim">
+    <span class="dim">Forgeout · working name</span>
+    <span class="dim">Built for X Layer TapeOut Accelerate</span>
+  </div>
+</footer>
 
 <script type="module" src="/src/main.ts"></script>
 </body>
