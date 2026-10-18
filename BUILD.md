@@ -248,3 +248,18 @@ biggest risks you saw. Then STOP. Do not start the registry, watchtower, app or 
 ## RESUMING AFTER A CUTOFF
 
 Read this file and docs/NEW.md, then continue from the first unfinished numbered step.
+
+## RESULT OF PHASE 1 (recorded)
+- Task 8: Cref=1728 is reproduced by the WITH-buffers convention (A=8, d=6). Our 6-NAND MAJ3 TIES the reference (q=1). It does not beat it. Do not claim otherwise anywhere.
+- Optimizer gap: MAJ3 came out at 8 gates, not <=6. Only duplicate removal + Shannon decomposition exist. Real Boolean minimization is the blocker. No new features until it is fixed.
+
+## PHASE 1b: real minimization and full replay (do this next; then STOP)
+1b.0 Check `df -h /`. If under 5 GB free, report and stop; do not delete anything of mine. Prefer a clean machine (VPS or GitHub Codespace).
+1b.1 ABC integration. Install yosys/abc if missing (report size first). Write a genlib with NAND2 (area 1, delay 1) and INV (area 1, delay 1; an inverter is emitted as NAND(x,x)). Run several flows (strash; resyn2 variants; dch; map for area and for delay), keep the best per objective. NEVER trust ABC output: re-verify every result with equivalence.ts, and reject on any mismatch.
+1b.2 Exact synthesis for <=4 inputs via SAT (cadical/pysat), per NPN class (222), computing both min-gate and min-C (gates x depth^3, with-buffers convention) variants. Commit the JSON library. Use it to settle: what is the true minimum for MAJ3, and does a 5-gate version exist? Report the proof status (UNSAT at r-1) for MAJ3.
+1b.3 Cut rewriting: replace 4-input cuts in larger netlists with the exact library when C improves, iterate to a fixed point, re-verify each step.
+1b.4 Replay coverage: build specs from the ON-CHAIN reference netlists (read-only), simulated locally; do not parse gate names. Combinational tasks: optimize and compare C under the matched convention. Sequential tasks: optimize the combinational logic between latches only and compare. Target all 100 tasks; list each skipped task and why.
+1b.5 Independently validate every "beat": re-simulate candidate vs reference over the full input space (or a SAT miter above 20 inputs), under the matched convention. Report invalid ones loudly.
+1b.6 LATCH semantics: scan circuits on processor 0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355 (read-only, circuitInfo nState>0). If one exists, compare step()/eval against local simulation and fix the model. If none, say UNVERIFIED.
+1b.7 Harden tests: differential fuzz (random truth tables 3-6 inputs, random netlists up to 200 gates) comparing exhaustive simulation vs optimizer output vs ABC; netlist mutation tests; seeds logged; run in CI.
+1b.8 Update docs/FABX-REPLAY.md: counts over all 100 tasks (beats / ties / loses / skipped), top 10 margins, share of tasks at the 4x cap, and median q. Then print the 3 biggest risks and STOP.
