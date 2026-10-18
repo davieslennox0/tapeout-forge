@@ -5,7 +5,8 @@
   "type": "module",
   "bin": { "forge": "src/index.ts" },
   "dependencies": {
-    "@tapeout-forge/core": "workspace:*"
+    "@tapeout-forge/core": "workspace:*",
+    "@tapeout-forge/chain": "workspace:*"
   },
   "scripts": {
     "test": "vitest run"

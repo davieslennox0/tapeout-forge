@@ -14,6 +14,8 @@ import {
 } from "@tapeout-forge/core";
 import { exprToRows } from "./expr.js";
 import { X_LAYER_COST } from "../../../config/cost.js";
+import { X_LAYER } from "../../../config/chains.js";
+import { verifyOnchain } from "@tapeout-forge/chain";
 
 interface Args {
   file?: string;
@@ -90,10 +92,69 @@ function report(label: string, nl: Netlist, gasFixed: number, gasPerGate: number
   );
 }
 
-function main() {
+interface VerifyArgs {
+  processor?: string;
+  id?: bigint;
+  inputs?: number[];
+  netlistHex?: string;
+  nin?: number;
+  nout?: number;
+}
+
+function parseVerifyArgs(argv: string[]): VerifyArgs {
+  const args: VerifyArgs = {};
+  const rest = argv.slice(1);
+  for (let i = 0; i < rest.length; i++) {
+    const a = rest[i];
+    const next = () => rest[++i];
+    if (a === "--processor") args.processor = next();
+    else if (a === "--id") args.id = BigInt(next());
+    else if (a === "--inputs") {
+      const hex = next().replace(/^0x/i, "");
+      const bytes = Buffer.from(hex, "hex");
+      const bits: number[] = [];
+      for (const b of bytes) for (let i = 0; i < 8; i++) bits.push((b >> i) & 1);
+      args.inputs = bits;
+    } else if (a === "--netlist-hex") args.netlistHex = next();
+    else if (a === "--nin") args.nin = Number(next());
+    else if (a === "--nout") args.nout = Number(next());
+    else throw new Error(`forge verify-onchain: unknown flag ${a}`);
+  }
+  return args;
+}
+
+async function runVerifyOnchain(argv: string[]) {
+  const args = parseVerifyArgs(argv);
+  if (!args.processor || args.id === undefined || !args.inputs) {
+    throw new Error("forge verify-onchain: --processor, --id and --inputs are required");
+  }
+  let localNetlist: Netlist | null = null;
+  if (args.netlistHex) {
+    if (args.nin === undefined || args.nout === undefined) {
+      throw new Error("forge verify-onchain: --nin and --nout required with --netlist-hex");
+    }
+    const content = readFileSync(args.netlistHex, "utf8").trim().replace(/^0x/i, "");
+    localNetlist = parseNetlist(Uint8Array.from(Buffer.from(content, "hex")), args.nin, args.nout);
+  }
+  const result = await verifyOnchain(X_LAYER.rpcUrl, args.processor, args.id, args.inputs, localNetlist);
+  console.log(`onchain output bits: [${result.onchain.outputBits.join(",")}]`);
+  if (result.localSimulation) console.log(`local simulation:     [${result.localSimulation.join(",")}]`);
+  console.log(`match: ${result.match === null ? "N/A" : result.match}`);
+  console.log(`note: ${result.note}`);
+}
+
+async function main() {
   const argv = process.argv.slice(2);
+  if (argv[0] === "verify-onchain") {
+    await runVerifyOnchain(argv);
+    return;
+  }
   if (argv[0] !== "optimize") {
-    console.log("usage: forge optimize <file> --format hex|csv|expr|netlist [--nin N] [--nout N] --objective area|depth|balanced [--cref N] [--count-buffers] [--out path]");
+    console.log(
+      "usage:\n" +
+        "  forge optimize <file> --format hex|csv|expr|netlist [--nin N] [--nout N] --objective area|depth|balanced [--cref N] [--count-buffers] [--out path]\n" +
+        "  forge verify-onchain --processor <addr> --id <n> --inputs <hex> [--netlist-hex <file> --nin N --nout N]"
+    );
     process.exit(argv.length === 0 ? 0 : 1);
   }
   const args = parseArgs(argv);
@@ -126,4 +187,7 @@ function main() {
   }
 }
 
-main();
+main().catch((err) => {
+  console.error(String(err?.message ?? err));
+  process.exit(1);
+});
