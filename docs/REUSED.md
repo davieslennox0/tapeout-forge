@@ -1,18 +1,23 @@
-# Reused from earlier work
+# REUSED.md — provenance ledger (BUILD.md section 0, rule 5)
 
-Carried over from earlier projects:
+Only work completed after 2026-10-16 counts for the hackathon. This file is honest about what was carried over from earlier projects on this same account and what is genuinely new.
 
-- `docs/fabx-tasks.json` — the live 100-task FabX bank, fetched from `api.fabx.tech`
-  by a research agent prior to this project's start (2026-10-18), via a headless
-  browser against `https://api.fabx.tech/v1/pod/taskbank`. Reused as-is since it is
-  a point-in-time data capture, not code.
-- The gas-cost figures in `config/cost.ts` (43,783 fixed + 1,952/gate on X Layer) and
-  the FabX formula/address facts in `BUILD.md` section 3 were MEASURED/VERIFIED by
-  research agents in prior sessions (see `maj3-silicon-spike` repo and the
-  `fleg` research scratch directory). No code was reused, only these data points.
-- The MAJ3 netlist examples in `BUILD.md` section 6 and the Verilog-latch lint fix
-  (`always_latch`) came from the `maj3-silicon-spike` feasibility spike
-  (github.com/davieslennox0/maj3-silicon-spike), a separate repo, referenced but
-  not copied into this one.
+## Carried over from Nandout
 
-No other code, package, or file in this repo predates 2026-10-16.
+Compared against github.com/davieslennox0/nandout (public, created 2026-10-11 — predates this event).
+
+- **TAP-02 wire-format constants/shape** (`packages/core/src/netlist.ts` here, vs. Nandout's own netlist-format files) — **RE-IMPLEMENTED**, not copied. Both repos independently comply with the same external TapeOut protocol spec: Nandout cites a vendored read of the real `NetlistVM.sol`; this repo cites BUILD.md's own section 3. The structural overlap (opcode bytes, u24/u64 big-endian signal indices) is forced by the shared external spec both are implementing, not derived from Nandout's own design choices.
+- **Core NAND-evaluation loop shape** (`packages/core/src/simulate.ts`'s `evalTick`, vs. Nandout's own `step()`-equivalent) — **RE-IMPLEMENTED**, same underlying idea (evaluate signals in topological order, const0/const1/input preamble), independently written code. This is close to the only correct way to implement the spec, not a distinctive technique borrowed from Nandout.
+- **Structural hashing / duplicate-NAND dedup** (`packages/core/src/aig.ts`'s `structuralHash`, vs. a similar cache in Nandout's circuit builder) — **RE-IMPLEMENTED**. Flagged explicitly: this is also a standard, textbook logic-synthesis technique (common-subexpression elimination over an AIG), not something original to Nandout either — the similarity doesn't indicate meaningful reuse either way.
+
+**Confirmed NOT reused** (checked directly, not assumed): Nandout's "NAND compiler" is actually a JSON-rule-tree lowering engine for memecoin safety-filter rules — a different domain and a different intermediate representation entirely; tapeout-forge has no equivalent and didn't draw from it. Nandout has zero optimizer, equivalence-checker, or exact-synthesis code anywhere in its tree (confirmed by directly searching its source) — tapeout-forge's entire SAT-exact-synthesis / equivalence-checking / ABC-integration / FabX-replay stack is independently built, with no Nandout precursor. Nandout's "registry" is an unrelated JSON launch cache for its own product, not an on-chain contract — bears no relation to this project's planned `ForgeRegistry`.
+
+## New in this event
+
+Everything under `packages/*`, `contracts/`, `docs/*.md`, and `BUILD.md` itself — all commits dated 2026-10-18, from the very first commit (`891b4eb`, adding BUILD.md and the fetched FabX task bank) through the latest on `main` at the time of writing (`a9a7d37`, Phase 2 step 2.2). This includes, among other things: the TAP-02 netlist parser/serializer/validator with round-trip tests; the exhaustive and multi-tick simulator; structural hashing and depth analysis; the SAT-based exact minimum-gate-count synthesizer (and the real bug it caught: a naive NPN-canonical-plus-inverter shortcut silently gives wrong, non-minimal answers for NAND-only logic); the Shannon-decomposition + ABC-integrated optimizer (with every ABC result independently re-verified, never trusted blindly); the equivalence checker (exhaustive plus a from-scratch Tseitin-CNF/DPLL SAT miter); the CLI; the chain package with real on-chain `eval()`/`circuitInfo()`/`netlist()` verification; the full FabX task-bank replay built from real fetched vectors (46/100 tasks have a complete deterministic spec; the other 54 are correctly excluded as sampled-only); and the beat-margin/independent-re-verification/buffer-convention analysis in Phase 2. None of this existed in any form before this event.
+
+## UNSURE (OPEN)
+
+1. **status: OPEN** — LATCH feedback direction conflict. tapeout-forge's LATCH model forbade forward feedback (`d` referencing a later signal) and logged this as UNVERIFIED across Phases 1, 1b, and 1c. Nandout's model explicitly ALLOWS forward feedback, sourced from its own vendored read of the real `NetlistVM.sol`. Investigated on the `latch-reconcile` branch (see docs/NEW.md for the full writeup) — the vendored source, independently confirmed against the real deployed contract's bytecode selectors and a live multi-tick `step()` test, supports allowing forward feedback, and `netlist.ts`/`simulate.ts` were updated accordingly on that branch. Still marked OPEN here because the branch is not yet merged to `main`.
+2. **status: OPEN** — Gas-model discrepancy. Nandout independently measured ~51,000 fixed + ~2,300/gate for `eval()` gas; tapeout-forge measured ~43,783 fixed + ~1,952/gate — about 15-20% apart. Not reconciled; unclear whether the two measured the same thing (same processor, same methodology) or something genuinely different.
+3. **status: OPEN** — No full line-by-line comparison was done between Nandout's own `docs/recon/RECON.md`/`LATCH_PROMPT.md` and BUILD.md section 3 for other protocol facts beyond the one LATCH-feedback point above. There could be other already-resolved-elsewhere facts hiding there that haven't been checked yet.
