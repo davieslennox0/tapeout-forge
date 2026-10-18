@@ -20,13 +20,13 @@ const hand6Gates: Netlist = {
 };
 
 describe("exact synthesis", () => {
-  it("EXACT_SYNTHESIS_MAX_INPUTS is 3 (documented BUILD.md 1.4 fallback, not 4)", () => {
+  it("EXACT_SYNTHESIS_MAX_INPUTS is 3 (n=4 SAT library covers only 222 NPN representatives so far, see exact.ts docstring)", () => {
     expect(EXACT_SYNTHESIS_MAX_INPUTS).toBe(3);
     expect(isExactSynthesizable(3)).toBe(true);
     expect(isExactSynthesizable(4)).toBe(false);
   });
 
-  it("finds a correct, proven-minimum-DEPTH MAJ3 (NOT minimum gate count - see exact.ts docstring)", () => {
+  it("finds a correct, PROVEN-minimum-GATE-COUNT MAJ3 (Phase 1b fix: was min-depth-only/8-gates before)", () => {
     const maj3Rows = exhaustiveTruthTable(hand6Gates).map((r) => r[0]);
     const tt = fromRows(maj3Rows);
     const synth = exactSynthesize(3, tt);
@@ -34,16 +34,15 @@ describe("exact synthesis", () => {
     const synthRows = exhaustiveTruthTable(synth).map((r) => r[0]);
     expect(synthRows).toEqual(maj3Rows); // functionally correct
 
-    // Depth-optimal: matches the known-minimum depth (4, same as hand6Gates).
+    // Phase 1b's SAT exact synthesizer proves 6 gates is the true minimum
+    // for MAJ3 (UNSAT at 5, see packages/core/scripts/sat_exact_synth.py),
+    // matching the hand-derived circuit's gate count exactly - this was the
+    // bug Phase 1 shipped (8 gates from a min-DEPTH-only library) and this
+    // assertion is written to fail loudly if it ever regresses.
+    expect(synth.gates.length).toBe(6);
     expect(circuitDepth(synth)).toBe(4);
-    expect(circuitDepth(hand6Gates)).toBe(4);
-
-    // NOT gate-count-optimal: this library's realization uses MORE total
-    // gates (8) than the hand-derived 6-gate circuit for the same function
-    // and same depth - documented limitation, asserted explicitly so this
-    // test fails loudly if that ever silently changes.
-    expect(synth.gates.length).toBe(8);
     expect(hand6Gates.gates.length).toBe(6);
+    expect(circuitDepth(hand6Gates)).toBe(4);
   });
 
   it("handles a trivial target (bare input literal) via the 2-gate buffer fallback", () => {
