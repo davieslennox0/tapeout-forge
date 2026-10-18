@@ -12,11 +12,11 @@ import {
   checkEquivalence,
   type Netlist,
   type Objective,
-} from "@tapeout-forge/core";
+} from "@forgeout/core";
 import { exprToRows } from "./expr.js";
 import { X_LAYER_COST } from "../../../config/cost.js";
 import { X_LAYER } from "../../../config/chains.js";
-import { verifyOnchain } from "@tapeout-forge/chain";
+import { verifyOnchain } from "@forgeout/chain";
 
 interface Args {
   file?: string;

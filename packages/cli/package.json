@@ -1,12 +1,12 @@
 {
-  "name": "@tapeout-forge/cli",
+  "name": "@forgeout/cli",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "bin": { "forge": "src/index.ts" },
   "dependencies": {
-    "@tapeout-forge/core": "workspace:*",
-    "@tapeout-forge/chain": "workspace:*"
+    "@forgeout/core": "workspace:*",
+    "@forgeout/chain": "workspace:*"
   },
   "scripts": {
     "test": "vitest run"

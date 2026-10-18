@@ -3,7 +3,7 @@
 import {
   parse as parseNetlist, serialize, exhaustiveTruthTable, fromRows, parseHex,
   optimize, computeCost, checkEquivalence, type Netlist, type Objective,
-} from '@tapeout-forge/core';
+} from '@forgeout/core';
 import { exprToRows } from './expr.js';
 import gallery from './data/gallery.json';
 

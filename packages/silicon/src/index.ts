@@ -3,7 +3,7 @@
 // reason string there for why (a real BUILD.md section-0-rule-9 spec conflict
 // found while building this, not a guess).
 
-import { Netlist, NandGate, firstOutputSignal } from "@tapeout-forge/core";
+import { Netlist, NandGate, firstOutputSignal } from "@forgeout/core";
 
 export const REQUIRED_SILICON_WORDING =
   "Tapeout-ready export. We have not ordered fabrication. Ordering is a separate paid step that the circuit owner completes on Tiny Tapeout. We do not claim a physical chip exists.";

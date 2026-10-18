@@ -1,4 +1,4 @@
-# TapeOut Forge
+# Forgeout
 
 A compiler/optimizer/equivalence-checker for [TapeOut](https://tapeout.net) circuits on X Layer.
 Built for the X Layer TapeOut Accelerate hackathon (Oct 16 - Dec 7 2026).

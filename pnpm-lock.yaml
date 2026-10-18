@@ -23,7 +23,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@tapeout-forge/core':
+      '@forgeout/core':
         specifier: workspace:*
         version: link:../../packages/core
     devDependencies:
@@ -33,7 +33,7 @@ importers:
 
   packages/chain:
     dependencies:
-      '@tapeout-forge/core':
+      '@forgeout/core':
         specifier: workspace:*
         version: link:../core
       js-sha3:
@@ -46,10 +46,10 @@ importers:
 
   packages/cli:
     dependencies:
-      '@tapeout-forge/chain':
+      '@forgeout/chain':
         specifier: workspace:*
         version: link:../chain
-      '@tapeout-forge/core':
+      '@forgeout/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -61,7 +61,7 @@ importers:
 
   packages/silicon:
     dependencies:
-      '@tapeout-forge/core':
+      '@forgeout/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { packInputBits, callEval, fetchNetlist, verifyOnchain, getCircuitInfo } from "../src/index.js";
-import { evalCombinational } from "@tapeout-forge/core";
+import { evalCombinational } from "@forgeout/core";
 import { X_LAYER } from "../../../config/chains.js";
 
 const PROCESSOR = "0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355"; // "OrderGuard" (VERIFIED via name(), see docs/NEW.md)
