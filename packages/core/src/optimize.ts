@@ -1,10 +1,68 @@
+import { execFileSync } from "node:child_process";
+import { writeFileSync, readFileSync, unlinkSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Netlist, Gate, NandGate } from "./netlist.js";
 import { NetlistError } from "./netlist.js";
 import type { TruthTable } from "./truthtable.js";
 import { exactSynthesize, EXACT_SYNTHESIS_MAX_INPUTS } from "./exact.js";
 import { circuitDepth, structuralHash } from "./aig.js";
+import { checkEquivalence } from "./equivalence.js";
 
-export type Objective = "area" | "depth" | "balanced";
+export type Objective = "area" | "depth" | "balanced" | "c";
+
+/** BUILD.md 1c.2's target metric: C under the WITH-BUFFERS convention (2 extra NAND buffers appended per single output, +2 depth), matching cost.ts's fabx.withBuffers for a single-output netlist (bufferGates=2). */
+export function bufferedC(gates: number, depth: number): number {
+  return computeC(gates + 2, depth + 2);
+}
+
+/**
+ * BUILD.md 1c.2: "Run ABC area and delay flows plus our own rewriting, keep
+ * the best by C." Never required (BUILD.md 1.5) - returns [] if yosys-abc or
+ * python3 are missing, or anything about the round-trip fails. NEVER trusted
+ * directly: every returned netlist is re-verified by the caller against a
+ * known-correct netlist via checkEquivalence before being used (BUILD.md
+ * 1b.1's "NEVER trust ABC output" rule, re-affirmed in 1c.0).
+ */
+function isAbcOnPath(): boolean {
+  try {
+    execFileSync("which", ["yosys-abc"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function tryAbcCandidates(nl: Netlist): Netlist[] {
+  if (nl.nOut !== 1) return []; // abc_map.py only handles the single-output case optimize() builds
+  let dir: string | undefined;
+  try {
+    dir = mkdtempSync(join(tmpdir(), "forge-abc-"));
+    const inPath = join(dir, "in.json");
+    const outPath = join(dir, "out.json");
+    writeFileSync(inPath, JSON.stringify({ nIn: nl.nIn, gates: nl.gates.map((g) => (g as NandGate)) }));
+    const scriptsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "scripts");
+    execFileSync("python3", [join(scriptsDir, "abc_map.py"), inPath, outPath], { stdio: "ignore", timeout: 30_000 });
+    const raw = JSON.parse(readFileSync(outPath, "utf8")) as { flow: string; netlist: { nIn: number; gates: { a: number; b: number }[] } }[];
+    return raw.map((r) => ({
+      nIn: r.netlist.nIn,
+      nOut: 1,
+      gates: r.netlist.gates.map((g): NandGate => ({ kind: "NAND", a: g.a, b: g.b })),
+    }));
+  } catch {
+    return [];
+  } finally {
+    if (dir) {
+      try {
+        unlinkSync(join(dir, "in.json"));
+        unlinkSync(join(dir, "out.json"));
+      } catch {
+        /* best-effort cleanup */
+      }
+    }
+  }
+}
 
 interface BuildCtx {
   nl: NandGate[];
@@ -264,6 +322,29 @@ export function optimize(
     if (opts?.cref !== undefined && c <= opts.cref / 4) break; // cap already reached, stop early
   }
 
+  // BUILD.md 1c.2: also try ABC (optional, never required) on our own best-so-far
+  // candidate. Every ABC result is re-verified against that candidate's netlist
+  // (already known correct, built directly from `tt`) before being trusted - a
+  // mismatch is silently dropped, never surfaced as a usable candidate. Since
+  // these are ADDED to `candidates` (not substituted), the final result can only
+  // match or beat the non-ABC baseline on every objective, never regress it.
+  if (isAbcOnPath()) {
+    const baseline = candidates[0].netlist;
+    for (const abcNl of tryAbcCandidates(baseline)) {
+      let verified = false;
+      try {
+        verified = checkEquivalence(abcNl, baseline).equivalent;
+      } catch {
+        verified = false;
+      }
+      if (!verified) continue;
+      const gates = abcNl.gates.length;
+      const depth = circuitDepth(abcNl);
+      const c = computeC(gates, depth);
+      candidates.push({ netlist: abcNl, gates, depth, c });
+    }
+  }
+
   // Pareto filter (drop dominated candidates: another one is <= in both gates and depth, strictly < in at least one).
   const frontier = candidates.filter(
     (cand, i) =>
@@ -281,6 +362,7 @@ export function optimize(
     if (objective === "area" && cand.gates < best.gates) best = cand;
     else if (objective === "depth" && cand.depth < best.depth) best = cand;
     else if (objective === "balanced" && cand.gates + cand.depth < best.gates + best.depth) best = cand;
+    else if (objective === "c" && bufferedC(cand.gates, cand.depth) < bufferedC(best.gates, best.depth)) best = cand;
   }
 
   return {
