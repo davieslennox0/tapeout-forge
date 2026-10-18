@@ -14,3 +14,14 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
+      - uses: foundry-rs/foundry-toolchain@v1
+      # contracts/ is intentionally outside the pnpm workspace (ForgeRegistry.sol is tested with
+      # Foundry, not vitest) - forge-std is a real dependency, not vendored (BUILD.md rule 8: no
+      # large installs beyond what's listed), so install it here rather than committing it.
+      - run: forge install foundry-rs/forge-std --no-commit
+        working-directory: contracts
+      # ForgeRegistry's tests verify its ABI against the real deployed OrderGuard processor and
+      # measure real gas (docs/GAS-VERIFY.md) - read-only fork mode, no key, no broadcast
+      # (BUILD.md section 0 rule 4).
+      - run: forge test --fork-url https://rpc.xlayer.tech
+        working-directory: contracts
