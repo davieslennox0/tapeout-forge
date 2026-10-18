@@ -249,16 +249,33 @@ function runExportSilicon(argv: string[]) {
   mkdirSync(join(outDir, "src"), { recursive: true });
   writeFileSync(join(outDir, "src", `${result.moduleName}.v`), result.verilog + "\n");
 
+  // Real schema confirmed against github.com/davieslennox0/maj3-silicon-spike's own working
+  // info.yaml (BUILD.md 4.0's re-verified spike) - every field below is required by the real
+  // Tiny Tapeout GDS action, not guessed: discord/clock_hz/tiles/the full 8-entry ui/uo/uio
+  // pinout map/yaml_version:6 are all mandatory even when left blank or zero.
+  const pinLine = (prefix: string, names: string[]) =>
+    Array.from({ length: 8 }, (_, i) => `  ${prefix}[${i}]: "${names[i] ?? ""}"`).join("\n");
+  const uiNames = result.pinMap.ui_in;
+  const uoNames = result.pinMap.uo_out;
+  const uioNames: string[] = [];
   const infoYaml =
     `# ${REQUIRED_SILICON_WORDING}\n` +
     `project:\n` +
     `  title: "${result.moduleName}"\n` +
     `  author: "davieslennox0"\n` +
+    `  discord: ""\n` +
     `  description: "TapeOut Forge export. ${REQUIRED_SILICON_WORDING}"\n` +
     `  language: "Verilog"\n` +
+    `  clock_hz: 0\n` +
+    `  tiles: "1x1"\n` +
     `  top_module: "${result.moduleName}"\n` +
     `  source_files:\n` +
-    `    - "${result.moduleName}.v"\n`;
+    `    - "${result.moduleName}.v"\n\n` +
+    `pinout:\n` +
+    `  # Inputs\n${pinLine("ui", uiNames)}\n\n` +
+    `  # Outputs\n${pinLine("uo", uoNames)}\n\n` +
+    `  # Bidirectional pins\n${pinLine("uio", uioNames)}\n\n` +
+    `yaml_version: 6\n`;
   writeFileSync(join(outDir, "info.yaml"), infoYaml);
 
   const readme =
