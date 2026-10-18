@@ -5,7 +5,8 @@
   "type": "module",
   "main": "src/index.ts",
   "dependencies": {
-    "@tapeout-forge/core": "workspace:*"
+    "@tapeout-forge/core": "workspace:*",
+    "js-sha3": "^0.13.0"
   },
   "scripts": {
     "test": "vitest run"

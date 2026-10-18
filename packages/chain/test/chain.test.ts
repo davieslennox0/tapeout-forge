@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { packInputBits, callEval } from "../src/index.js";
+import { packInputBits, callEval, fetchNetlist, verifyOnchain, getCircuitInfo } from "../src/index.js";
+import { evalCombinational } from "@tapeout-forge/core";
 import { X_LAYER } from "../../../config/chains.js";
 
-const PROCESSOR = "0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355"; // BUILD.md section 3 / earlier gas measurement
+const PROCESSOR = "0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355"; // "OrderGuard" (VERIFIED via name(), see docs/NEW.md)
+const FAB_TST = "0x87bfca3494aa228ff589ab9b642143a5e8c8f9a6"; // "FAB-Genisis" (VERIFIED via name(), see docs/NEW.md)
 
 describe("packInputBits", () => {
   it("bit0 = first pin, packed little-end-first into bytes", () => {
@@ -12,38 +14,42 @@ describe("packInputBits", () => {
 });
 
 describe("callEval against the live X Layer processor (real network)", () => {
-  // BUILD.md 1.9: "If the RPC is reachable: local simulation equals eval() on
-  // circuits 1,3,4,5... If not, write the exact command for the maintainer
-  // to run and mark the test PENDING." We go further: even with the RPC
-  // reachable, we have NO local netlist for these deployed circuits (1.9
-  // deliberately does not fetch netlist(id) - unverified ABI, see
-  // src/index.ts's verifyOnchain docstring). So this test can only verify
-  // the REAL eval() call succeeds and returns well-formed bytes - the full
-  // "local simulation equals eval()" comparison is marked PENDING below,
-  // with the exact command to run once a local netlist is supplied.
-  const circuitIds = [1n, 3n, 4n, 5n];
+  // BUILD.md 1.9 / 1b.5: local simulation vs real eval() on circuits 1,3,4,5.
+  // PHASE 1b UPDATE: netlist(id) and circuitInfo(uint256)'s ABI are now
+  // VERIFIED (see src/index.ts docstrings) - this is a REAL full comparison,
+  // not a PENDING placeholder like Phase 1 shipped.
+  const circuitIds = [1n, 2n, 3n, 4n, 5n];
 
-  it("eval() responds with well-formed bytes for circuits 1,3,4,5, or is marked PENDING if unreachable", async () => {
+  it("real on-chain netlist, simulated locally, matches real eval() exactly - for every input row", async () => {
     for (const id of circuitIds) {
-      try {
-        const r = await callEval(X_LAYER.rpcUrl, PROCESSOR, id, packInputBits([1, 1]), 1);
-        expect(r.outputBits.length).toBe(1);
-        expect([0, 1]).toContain(r.outputBits[0]);
-      } catch (err) {
-        console.warn(
-          `PENDING: eval() call for circuit ${id} failed (RPC unreachable or circuit's real input width differs from the 2 bits guessed here): ${err}. ` +
-            `Maintainer: run \`forge verify-onchain --processor ${PROCESSOR} --id ${id} --inputs 0x03\` once network/circuit details are confirmed.`
-        );
+      const info = await getCircuitInfo(X_LAYER.rpcUrl, PROCESSOR, id);
+      expect(info.nState).toBe(0); // all 5 are combinational (VERIFIED empirically)
+      const netlist = await fetchNetlist(X_LAYER.rpcUrl, PROCESSOR, id);
+      expect(netlist.nIn).toBe(info.nIn);
+      expect(netlist.gates.length).toBe(info.gateCount);
+
+      // Exhaustive: every input row, not just one.
+      for (let x = 0; x < 1 << netlist.nIn; x++) {
+        const bits: number[] = [];
+        for (let i = 0; i < netlist.nIn; i++) bits.push((x >> i) & 1);
+        const local = evalCombinational(netlist, bits);
+        const onchain = await callEval(X_LAYER.rpcUrl, PROCESSOR, id, packInputBits(bits), netlist.nOut);
+        expect(onchain.outputBits).toEqual(local);
       }
     }
+  }, 60000);
+
+  it("verifyOnchain() fetches the real netlist itself and reports match=true", async () => {
+    const r = await verifyOnchain(X_LAYER.rpcUrl, PROCESSOR, 3n, [1, 1, 0]);
+    expect(r.match).toBe(true);
+    expect(r.netlistFetchAttempted).toBe(true);
   });
 
-  it("PENDING: full local-simulation-vs-eval() comparison needs a local netlist this session never fetched", () => {
-    console.warn(
-      "PENDING (not run): no local netlist for processor's circuits 1,3,4,5 - netlist(id)'s ABI is " +
-        "UNVERIFIED and was not guessed (see src/index.ts). Maintainer command once a local netlist " +
-        `hex is available: \`forge verify-onchain --processor ${PROCESSOR} --id <n> --inputs <hex> --netlist-hex <file>\`.`
-    );
-    expect(true).toBe(true); // intentionally not a real assertion - see note above
+  it("a real on-chain LATCH circuit (FAB_TST id=49, nState=1) makes eval() revert with 'has latch: use step'", async () => {
+    const info = await getCircuitInfo(X_LAYER.rpcUrl, FAB_TST, 49n);
+    expect(info.nState).toBe(1);
+    const r = await verifyOnchain(X_LAYER.rpcUrl, FAB_TST, 49n, [1]);
+    expect(r.match).toBeNull();
+    expect(r.note).toMatch(/UNVERIFIED/);
   });
 });

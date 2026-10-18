@@ -7,26 +7,28 @@ import type { TruthTable } from "./truthtable.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /**
- * TWO documented deviations from BUILD.md step 1.4's literal request
- * ("exact synthesis... minimum NAND2"), both deliberate and logged here and
- * in docs/NEW.md, not silent gaps:
+ * PHASE 1b UPDATE (docs/NEW.md): now loads exact-min-gate-lib-N.json -
+ * SAT-based, true minimum GATE COUNT, UNSAT-at-(r-1) PROVEN for n<=3 (every
+ * function independently solved) and for n=4's 222 NPN-canonical
+ * representatives. Fixes the Phase-1 gap this docstring used to describe
+ * (MAJ3 used to come out at 8 gates here; it's proven-minimum 6 now,
+ * matching BUILD.md's hand circuit and resolving Task 8 as a genuine tie,
+ * not an optimizer artifact).
  *
- * 1. This library is exact MINIMUM-DEPTH (longest dependency chain), NOT
- *    exact minimum TOTAL GATE COUNT - different objectives (area vs.
- *    delay). A true minimum-gate-count exact synthesizer needs a harder
- *    search (effectively SAT-based: try k=1,2,3... gates, ask whether any
- *    k-gate DAG realizes the target) that was judged too large to implement
- *    correctly in this session. See scripts/gen-exact-lib.ts's header.
- *    Concretely: this library's MAJ3 result uses 8 gates at depth 4, even
- *    though a 6-gate depth-4 circuit for the same function exists (see
- *    docs/FABX-REPLAY.md / BUILD.md section 6) - 8 is exact-minimum DEPTH,
- *    not exact-minimum gate count. optimize.ts's "depth" objective can rely
- *    on this library exactly; its "area" objective cannot and falls back to
- *    heuristic rewriting instead.
- * 2. Shipped for 1-3 inputs only (BUILD.md's own sanctioned fallback - "if
- *    too slow, ship 3 inputs and log the limit"). The 222-NPN-class 4-input
- *    library was not built; a direct BFS over all 65536 four-input
- *    functions was judged too expensive to run reliably here.
+ * See packages/core/scripts/sat_exact_synth.py's own docstring for a real
+ * bug this found and fixed along the way: naively solving only an
+ * NPN-canonical representative and bolting inverter gates onto it to reach
+ * other class members does NOT give each member's true minimum, because
+ * input/output negation costs a real NAND gate in this technology (unlike
+ * idealized AIG representations where edge inversion is free). n=4's
+ * ~65314 non-representative entries are therefore a verified-correct
+ * (every entry is simulated against its truth table before being accepted)
+ * but NOT independently-proven-minimal upper bound - not currently
+ * surfaced to callers of exactSynthesize() as a distinct return field, but
+ * recorded in the raw JSON's "proven" field for anyone who needs it.
+ *
+ * The OLD exact-lib-N.json (min-DEPTH, not min-gate) files remain in data/
+ * for provenance but are no longer loaded by this module.
  */
 export const EXACT_SYNTHESIS_MAX_INPUTS = 3;
 
@@ -39,7 +41,7 @@ const cache = new Map<number, Record<string, ExactLibEntry>>();
 function loadLib(nIn: number): Record<string, ExactLibEntry> {
   const cached = cache.get(nIn);
   if (cached) return cached;
-  const path = join(__dirname, "..", "data", `exact-lib-${nIn}.json`);
+  const path = join(__dirname, "..", "data", `exact-min-gate-lib-${nIn}.json`);
   const lib = JSON.parse(readFileSync(path, "utf8"));
   cache.set(nIn, lib);
   return lib;
@@ -50,9 +52,9 @@ export function isExactSynthesizable(nIn: number): boolean {
 }
 
 /**
- * Returns a PROVEN-minimum-DEPTH NAND-only netlist (single output, output =
- * last gate) for the given truth table - NOT proven-minimum gate count, see
- * EXACT_SYNTHESIS_MAX_INPUTS's docstring. If the target is already a base
+ * Returns a PROVEN-minimum-GATE-COUNT NAND-only netlist (single output,
+ * output = last gate) for the given truth table (see module docstring for
+ * the n=4-non-representative caveat). If the target is already a base
  * signal (a constant or a single literal), two trivial double-negation
  * buffer gates are emitted so the "output = last gate" convention still
  * holds (costed honestly as 2 gates, not reported as the library's 0-gate
@@ -62,7 +64,7 @@ export function isExactSynthesizable(nIn: number): boolean {
 export function exactSynthesize(nIn: number, tt: TruthTable): Netlist {
   if (!isExactSynthesizable(nIn)) {
     throw new Error(
-      `exactSynthesize: nIn=${nIn} exceeds EXACT_SYNTHESIS_MAX_INPUTS=${EXACT_SYNTHESIS_MAX_INPUTS} (BUILD.md 1.4 fallback - 4-input exact synthesis not shipped)`
+      `exactSynthesize: nIn=${nIn} exceeds EXACT_SYNTHESIS_MAX_INPUTS=${EXACT_SYNTHESIS_MAX_INPUTS}`
     );
   }
   const lib = loadLib(nIn);
