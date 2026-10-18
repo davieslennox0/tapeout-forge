@@ -1,43 +1,74 @@
-# FabX replay (BUILD.md step 1.10, re-run post-Phase-1b)
+# FabX replay (BUILD.md 1c.5 - rebuilt from REAL fetched vectors, not guessed gate names)
 
-**PHASE 1b UPDATE**: Task 8 is now a PROVEN tie, not an optimizer artifact. SAT-based exact synthesis (packages/core/scripts/sat_exact_synth.py) proves MAJ3's true minimum is 6 gates/depth 4 (UNSAT at 5 gates - exhaustively checked, not sampled), which with the 2 output buffers is exactly 8 gates/depth 6/C=1728=Cref. Independently cross-checked with ABC's own technology mapper (yosys-abc, NAND2+INV genlib, `strash;balance;rewrite;refactor;...;dch;map`): ABC also finds area=6/delay=4/lev=4 - a different 6-gate wiring (2 inverters + 4 NAND2s vs. our pure-NAND circuit) but the identical cost, via a completely independent method. No better-than-6-gate MAJ3 circuit can exist.
+Scope: the 46 tasks 1c.1 proved have a COMPLETE deterministic spec (comb, nIn<=8; see docs/VECTOR-SPEC-CHECK.md). The other 54 (44 wide-input comb + all 46 sequential) are excluded - sampled vectors only, fitting them would be overfitting per BUILD.md's explicit rule. Convention: WITH 2*nOut buffer gates and +2 depth (resolved from Task 8's real Cref=1728 in Phase 1b/1c). Every "beat" below is independently re-derived and bit-compared against the real fetched vectors before being counted, not trusted from optimize()'s own internal check.
 
-**Additionally content-verified on real chain data**: FAB_TST ("FAB-Genisis", 0x87bfca3494aa228ff589ab9b642143a5e8c8f9a6) circuit id=65 was fetched (netlist(uint256), VERIFIED ABI - see docs/NEW.md) and its real `eval()` output was checked against all 8 input rows live on X Layer - it is EXACTLY the 3-input majority function (not just a shape match: every row confirmed), with 6 real NAND gates at depth 4, identical to our proven optimum. This is the strongest evidence yet that 6 gates/depth 4 is not just theoretically optimal but is what a real, currently-deployed circuit on the actual PoD mining processor achieves.
+**Counts**: beat 22 / tie 11 / lose 13 / skip 0 (of 46 attempted). At the 4x q-cap: 1/46. Median q: 1.000.
 
-**Convention resolved from data**: Task 8's real bank entry (refNand=8, refDepth=6, area=8, Cref=1728=8×6³) exactly matches the WITH-output-buffers numbers, not without. FabX's refNand/refDepth/area/Cref already include the 2 contract-appended buffer NANDs per output. All C/q below use that convention.
+## Top 10 margins (Cref/bestC, descending - biggest beats first)
 
-**Known limitation, unchanged from Phase 1**: this replay still builds specs from hand-identified standard-gate names (23/100 tasks), NOT from on-chain reference netlists as BUILD.md 1b.4 asked for. Phase 1b DID find and verify the real on-chain ABI for this (circuitInfo(uint256)/netlist(uint256) on both OrderGuard and the FAB_TST/"FAB-Genisis" processor - see docs/NEW.md and packages/chain/src/index.ts), but found no reliable way to map a specific FAB_TST circuit ID to a specific GC-XXX task ID: FAB_TST hosts 100+ circuits that look like a PoD-mining submission ledger (many near-duplicate small functions, no task-ID field anywhere in the task bank JSON or on-chain data), so structural (nIn,nOut,gates) matching produced ambiguous many-to-many results rather than a trustworthy 1:1 mapping. This is reported as a genuine blocker, not a silently-skipped requirement - see docs/NEW.md for the specific evidence (e.g. circuit id 65 on FAB_TST independently has nIn=3/nOut=1/gates=6/depth=4, exactly matching our proven MAJ3 - plausible corroboration for Task 8, but not a confirmed mapping).
-
-**Coverage**: 23/100 tasks attempted (unambiguous standard-gate/arithmetic names only). Skipped: 12, 24, 26, 27, 28, 29, 30 (12, 24, 26: ambiguous exact output encoding; 27-30: sequential, LATCH synthesis not implemented in Phase 1 optimize.ts).
-
-| id | name | tier | kind | Cref | best C (ours, buffered) | q | status |
+| task | name | nIn/nOut | Cref | bestC | q | objective | verdict |
 |---|---|---|---|---|---|---|---|
-| 7 | GC-007 双输入同或门 | 简单 | comb | 1512 | 875 | 1.728 | beaten |
-| 22 | GC-022 四位回绕加一器 | 简单 | comb | 16767 | 15360 | 1.092 | beaten |
-| 1 | GC-001 单比特反相器 | 简单 | comb | 81 | 81 | 1.000 | tie-or-optimal |
-| 2 | GC-002 双输入与非门 | 简单 | comb | 81 | 81 | 1.000 | tie-or-optimal |
-| 3 | GC-003 双输入与门 | 简单 | comb | 256 | 256 | 1.000 | tie-or-optimal |
-| 6 | GC-006 双输入异或门 | 简单 | comb | 750 | 750 | 1.000 | tie-or-optimal |
-| 8 | GC-008 三输入多数表决器 | 简单 | comb | 1728 | 1728 | 1.000 | tie-or-optimal |
-| 9 | GC-009 单比特二选一选择器 | 简单 | comb | 750 | 750 | 1.000 | tie-or-optimal |
-| 10 | GC-010 单比特一分二分配器 | 简单 | comb | 1125 | 1125 | 1.000 | tie-or-optimal |
-| 19 | GC-019 单比特半减器 | 简单 | comb | 1375 | 1375 | 1.000 | tie-or-optimal |
-| 20 | GC-020 单比特全减器 | 简单 | comb | 8704 | 8704 | 1.000 | tie-or-optimal |
-| 23 | GC-023 四位回绕减一器 | 简单 | comb | 24000 | 25515 | 0.941 | lost |
-| 11 | GC-011 带使能的二到四译码器 | 简单 | comb | 8918 | 9604 | 0.929 | lost |
-| 17 | GC-017 单比特半加器 | 简单 | comb | 1125 | 1250 | 0.900 | lost |
-| 14 | GC-014 四位全零检测器 | 简单 | comb | 8748 | 10935 | 0.800 | lost |
-| 16 | GC-016 四位数据偶校验检查器 | 简单 | comb | 32832 | 43200 | 0.760 | lost |
-| 18 | GC-018 单比特全加器 | 简单 | comb | 6656 | 9216 | 0.722 | lost |
-| 5 | GC-005 双输入或非门 | 简单 | comb | 750 | 1296 | 0.579 | lost |
-| 4 | GC-004 双输入或门 | 简单 | comb | 320 | 625 | 0.512 | lost |
-| 15 | GC-015 四位偶校验位生成器 | 简单 | comb | 7168 | 18000 | 0.398 | lost |
-| 13 | GC-013 四位相等比较器 | 简单 | comb | 48384 | 609212 | 0.250 | lost |
-| 21 | GC-021 二位无符号大小比较器 | 简单 | comb | 16384 | 66550 | 0.250 | lost |
-| 25 | GC-025 四位位序反转器 | 简单 | comb | 64 | 1024 | 0.250 | lost |
+| 12 | GC-012 四到二独热编码与错误检测器 | 4/4 | 496000 | 28672 | 4.000 | area | beat |
+| 46 | GC-046 八路低位优先编码器 | 8/4 | 367416 | 92000 | 3.994 | depth | beat |
+| 45 | GC-045 八位字尾随零计数器 | 8/4 | 334084 | 93000 | 3.592 | depth | beat |
+| 43 | GC-043 八位字置位计数器 | 8/4 | 2780346 | 889253 | 3.127 | area | beat |
+| 44 | GC-044 八位字前导零计数器 | 8/4 | 334084 | 113135 | 2.953 | area | beat |
+| 54 | GC-054 四位可变逻辑移位器 | 7/4 | 155987 | 53217 | 2.931 | area | beat |
+| 55 | GC-055 四位可变循环移位器 | 7/4 | 186745 | 64152 | 2.911 | depth | beat |
+| 39 | GC-039 三位无符号乘法器 | 6/6 | 576000 | 205632 | 2.801 | area | beat |
+| 50 | GC-050 四位二进制转两位十进制BCD | 4/8 | 43000 | 15778 | 2.725 | area | beat |
+| 37 | GC-037 四位补码绝对值转换器 | 4/4 | 63936 | 26244 | 2.436 | area | beat |
 
-**Counts**: beaten-or-at-cap=2 (of which at the 4x cap=0), tie/already-optimal=9, lost (our optimizer did worse than the reference)=12.
+## Full results (all 46)
 
-**Task 8 explicitly**: reference refNand=8, refDepth=6, area=8 (Cref=1728). Our optimizer's best C=1728 -> tie-or-optimal.
+| task | name | nIn/nOut | Cref | bestC | q | objective | verdict |
+|---|---|---|---|---|---|---|---|
+| 1 | GC-001 单比特反相器 | 1/1 | 81 | 81 | 1.000 | area | tie |
+| 2 | GC-002 双输入与非门 | 2/1 | 81 | 81 | 1.000 | area | tie |
+| 3 | GC-003 双输入与门 | 2/1 | 256 | 256 | 1.000 | area | tie |
+| 4 | GC-004 双输入或门 | 2/1 | 320 | 320 | 1.000 | area | tie |
+| 5 | GC-005 双输入或非门 | 2/1 | 750 | 750 | 1.000 | area | tie |
+| 6 | GC-006 双输入异或门 | 2/1 | 750 | 750 | 1.000 | area | tie |
+| 7 | GC-007 双输入同或门 | 2/1 | 1512 | 875 | 1.728 | area | beat |
+| 8 | GC-008 三输入多数表决器 | 3/1 | 1728 | 1728 | 1.000 | area | tie |
+| 9 | GC-009 单比特二选一选择器 | 3/1 | 750 | 750 | 1.000 | area | tie |
+| 10 | GC-010 单比特一分二分配器 | 2/2 | 1125 | 1125 | 1.000 | area | tie |
+| 11 | GC-011 带使能的二到四译码器 | 3/4 | 8918 | 9604 | 0.929 | area | lose |
+| 12 | GC-012 四到二独热编码与错误检测器 | 4/4 | 496000 | 28672 | 4.000 | area | beat |
+| 13 | GC-013 四位相等比较器 | 8/1 | 48384 | 29000 | 1.668 | area | beat |
+| 14 | GC-014 四位全零检测器 | 4/1 | 8748 | 4116 | 2.125 | area | beat |
+| 15 | GC-015 四位偶校验位生成器 | 4/1 | 7168 | 7203 | 0.995 | depth | lose |
+| 16 | GC-016 四位数据偶校验检查器 | 5/1 | 32832 | 26000 | 1.263 | depth | beat |
+| 17 | GC-017 单比特半加器 | 2/2 | 1125 | 1250 | 0.900 | area | lose |
+| 18 | GC-018 单比特全加器 | 3/2 | 6656 | 9216 | 0.722 | area | lose |
+| 19 | GC-019 单比特半减器 | 2/2 | 1375 | 1375 | 1.000 | area | tie |
+| 20 | GC-020 单比特全减器 | 3/2 | 8704 | 8704 | 1.000 | area | tie |
+| 21 | GC-021 二位无符号大小比较器 | 4/3 | 16384 | 12348 | 1.327 | area | beat |
+| 22 | GC-022 四位回绕加一器 | 4/4 | 16767 | 10290 | 1.629 | depth | beat |
+| 23 | GC-023 四位回绕减一器 | 4/4 | 24000 | 18432 | 1.302 | depth | beat |
+| 24 | GC-024 四位固定一位逻辑移位器 | 4/8 | 128 | 2048 | 0.250 | area | lose |
+| 25 | GC-025 四位位序反转器 | 4/4 | 64 | 1024 | 0.250 | area | lose |
+| 34 | GC-034 四位无符号饱和加法器 | 8/5 | 139944 | 226368 | 0.618 | area | lose |
+| 35 | GC-035 四位无符号饱和减法器 | 8/5 | 417605 | 371293 | 1.125 | area | beat |
+| 36 | GC-036 四位补码大小比较器 | 8/3 | 115776 | 81000 | 1.429 | depth | beat |
+| 37 | GC-037 四位补码绝对值转换器 | 4/4 | 63936 | 26244 | 2.436 | area | beat |
+| 38 | GC-038 四位补码饱和加法器 | 8/5 | 404681 | 839680 | 0.482 | area | lose |
+| 39 | GC-039 三位无符号乘法器 | 6/6 | 576000 | 205632 | 2.801 | area | beat |
+| 40 | GC-040 四位双输入最小最大值选择器 | 8/8 | 239625 | 222912 | 1.075 | area | beat |
+| 43 | GC-043 八位字置位计数器 | 8/4 | 2780346 | 889253 | 3.127 | area | beat |
+| 44 | GC-044 八位字前导零计数器 | 8/4 | 334084 | 113135 | 2.953 | area | beat |
+| 45 | GC-045 八位字尾随零计数器 | 8/4 | 334084 | 93000 | 3.592 | depth | beat |
+| 46 | GC-046 八路低位优先编码器 | 8/4 | 367416 | 92000 | 3.994 | depth | beat |
+| 47 | GC-047 带使能的三到八译码器 | 4/8 | 43011 | 26068 | 1.650 | area | beat |
+| 48 | GC-048 四位二进制转格雷码转换器 | 4/4 | 2500 | 2875 | 0.870 | area | lose |
+| 49 | GC-049 四位格雷码转二进制转换器 | 4/4 | 14336 | 22016 | 0.651 | depth | lose |
+| 50 | GC-050 四位二进制转两位十进制BCD | 4/8 | 43000 | 15778 | 2.725 | area | beat |
+| 51 | GC-051 两位BCD转七位二进制转换器 | 8/8 | 713336 | 759375 | 0.939 | area | lose |
+| 53 | GC-053 带使能的四位一分四分配器 | 7/16 | 59778 | 49392 | 1.210 | area | beat |
+| 54 | GC-054 四位可变逻辑移位器 | 7/4 | 155987 | 53217 | 2.931 | area | beat |
+| 55 | GC-055 四位可变循环移位器 | 7/4 | 186745 | 64152 | 2.911 | depth | beat |
+| 87 | GC-087 汉明(7,4)单错纠正译码器 | 7/15 | 823080 | 1967448 | 0.418 | depth | lose |
+| 88 | GC-088 汉明(8,4)SECDED译码器 | 8/17 | 3863552 | 4257360 | 0.907 | area | lose |
 
-**Honest summary**: the optimizer does **not** beat most references for small, already hand-optimized standard gates/arithmetic - it frequently ties or loses, because its only area-reduction technique is exact structural-duplicate removal (dedupe), not full Boolean factoring. This is a valid, reported result, not a success claim.
+## Task 8 (GC-008, 3-input majority) explicitly
+refNand=8, refDepth=6, Cref=1728. Our best: C=1728 via objective=area -> **tie**.
