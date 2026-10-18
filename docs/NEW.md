@@ -101,3 +101,11 @@ n=4 exact library NOT built: per-class SAT too slow (75/3984 classes in 16 min, 
   Added a Foundry install + `forge test --fork-url` step; verified green on real GitHub Actions
   (run 39146636855), not just locally. 50 vitest tests + 8 real forge tests (fork-verified gas
   for n=3..6) all pass in CI now.
+
+- 2026-10-18: apps/web deployed to a real host: https://forge.fanside.xyz (live, verified:
+  index.html 200, JS bundle 200/117,488 bytes, valid TLS, cert auto-issued by Caddy). One Caddy
+  site block appended to the Caddyfile on the deploy host, nothing else touched (the
+  pre-existing fanside.xyz block had already been removed earlier for an unrelated reason and
+  was intentionally not restored). Backup taken before editing, config validated before reload,
+  DNS resolution checked before reload. Repeatable via `scripts/deploy-web.sh <domain> <webroot>
+  [caddyfile]`, which takes the host as a parameter and contains no secrets.

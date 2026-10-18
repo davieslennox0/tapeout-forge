@@ -65,6 +65,24 @@ upload; a wrong content-type on `index.html`/the JS bundle makes the browser ref
 site, with no error beyond a blank page. Test by resolving `your-name.2.<processor>.tape`
 yourself before announcing it.
 
+## 4a. apps/web is already live (plain static hosting, not DeWEB)
+
+Already done, not a remaining TODO: https://forge.fanside.xyz is live right now, serving the
+same `apps/web/dist` build via a normal Caddy static site (not DeWEB — DeWEB is still the
+optional step 4 above). Repeatable/updatable with:
+```
+scripts/deploy-web.sh forge.fanside.xyz /var/www/forge /etc/caddy/Caddyfile
+```
+This builds, backs up the Caddyfile, copies the build output, adds/validates the site block,
+checks DNS, and only then reloads Caddy — it stops before reloading if DNS doesn't resolve yet,
+and restores the backup if validation fails. No secrets in the script; it must be run on the
+target host itself (it does not SSH anywhere).
+
+**What could go wrong**: it edits the live Caddyfile on whatever host you run it on — only run
+it on a host you intend to actually serve from. It `--delete`s the target webroot's contents on
+each run (rsync mirrors the build output exactly), so don't point `<webroot>` at a directory
+with anything else in it.
+
 ## 5. Make the repo public
 
 ```
