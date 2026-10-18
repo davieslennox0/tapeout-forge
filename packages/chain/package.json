@@ -1,0 +1,12 @@
+{
+  "name": "@tapeout-forge/chain",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@tapeout-forge/core": "workspace:*"
+  },
+  "scripts": {
+    "test": "echo 'no tests yet - filled in step 1.9'"
+  }
+}

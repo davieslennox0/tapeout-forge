@@ -1,0 +1,13 @@
+{
+  "name": "@tapeout-forge/cli",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": { "forge": "src/index.ts" },
+  "dependencies": {
+    "@tapeout-forge/core": "workspace:*"
+  },
+  "scripts": {
+    "test": "echo 'no tests yet - filled in step 1.8'"
+  }
+}
