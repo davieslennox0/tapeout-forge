@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import {
   parse as parseNetlist,
@@ -17,6 +18,7 @@ import { exprToRows } from "./expr.js";
 import { X_LAYER_COST } from "../../../config/cost.js";
 import { X_LAYER } from "../../../config/chains.js";
 import { verifyOnchain } from "@tapeout-forge/chain";
+import { toTtskyWrapper, REQUIRED_SILICON_WORDING } from "@tapeout-forge/silicon";
 
 interface Args {
   file?: string;
@@ -196,21 +198,107 @@ function runCalldata(argv: string[]) {
   console.log(`calldata (never sent - dry run only): ${calldata}`);
 }
 
+// --- forge export-silicon: writes a ready-to-push repo directory (src/, info.yaml, README with
+// the required limitation wording) for one netlist, via packages/silicon. Never pushes, never
+// submits, never pays - it only writes local files and prints next steps for the owner to do
+// manually (BUILD.md 4.4 / Phase 4 rules). ---
+function runExportSilicon(argv: string[]) {
+  let target: string | undefined;
+  let nin: number | undefined;
+  let nout: number | undefined;
+  let slug = "circuit";
+  let outDir = "silicon-export";
+  const rest = argv.slice(1);
+  for (let i = 0; i < rest.length; i++) {
+    const a = rest[i];
+    const next = () => rest[++i];
+    if (a === "--nin") nin = Number(next());
+    else if (a === "--nout") nout = Number(next());
+    else if (a === "--slug") slug = next();
+    else if (a === "--out") outDir = next();
+    else if (!a.startsWith("--")) target = a;
+    else throw new Error(`forge export-silicon: unknown flag ${a}`);
+  }
+  if (!target) throw new Error("forge export-silicon: missing <netlist-hex-file|task-id>");
+
+  let nl: Netlist;
+  if (/^\d+$/.test(target)) {
+    // task ID: look up in the committed task-bank snapshot (packages/core/scripts/tasks.json).
+    const snapshot = JSON.parse(readFileSync(new URL("../../core/scripts/tasks.json", import.meta.url), "utf8"));
+    const task = snapshot.tasks.find((t: any) => t.id === Number(target));
+    if (!task) throw new Error(`forge export-silicon: task ${target} not found in packages/core/scripts/tasks.json`);
+    const hex = task.netlistHex.replace(/^0x/i, "");
+    const bytes = Uint8Array.from(Buffer.from(hex, "hex"));
+    nl = parseNetlist(bytes, task.nIn, task.nOut);
+    if (slug === "circuit") slug = `task${task.id}`;
+  } else {
+    if (nin === undefined || nout === undefined) {
+      throw new Error("forge export-silicon: --nin and --nout are required for a netlist-hex file");
+    }
+    const content = readFileSync(target, "utf8").trim().replace(/^0x/i, "");
+    nl = parseNetlist(Uint8Array.from(Buffer.from(content, "hex")), nin, nout);
+  }
+
+  const result = toTtskyWrapper(nl, slug);
+  if (!result.ok) {
+    console.log(`refused: ${result.reason}`);
+    process.exitCode = 1;
+    return;
+  }
+
+  mkdirSync(join(outDir, "src"), { recursive: true });
+  writeFileSync(join(outDir, "src", `${result.moduleName}.v`), result.verilog + "\n");
+
+  const infoYaml =
+    `# ${REQUIRED_SILICON_WORDING}\n` +
+    `project:\n` +
+    `  title: "${result.moduleName}"\n` +
+    `  author: "davieslennox0"\n` +
+    `  description: "TapeOut Forge export. ${REQUIRED_SILICON_WORDING}"\n` +
+    `  language: "Verilog"\n` +
+    `  top_module: "${result.moduleName}"\n` +
+    `  source_files:\n` +
+    `    - "${result.moduleName}.v"\n`;
+  writeFileSync(join(outDir, "info.yaml"), infoYaml);
+
+  const readme =
+    `# ${result.moduleName}\n\n${REQUIRED_SILICON_WORDING}\n\n` +
+    `Status: **exported** (not submitted, not fabricated, not paid for).\n\n` +
+    `## Next steps for the circuit owner\n` +
+    `1. Push this directory's contents into a fresh repo cloned from the official Tiny Tapeout ` +
+    `\`ttsky\` Verilog template (this tool does not push anywhere itself).\n` +
+    `2. Run that repo's GitHub Actions flow (produces a real DRC-checked GDS - see ` +
+    `github.com/davieslennox0/maj3-silicon-spike for a worked example).\n` +
+    `3. If and only if the owner wants to proceed, submit on tinytapeout.com against an open shuttle.\n` +
+    `4. Pay Tiny Tapeout's own fee there. This project never does this step for you.\n`;
+  writeFileSync(join(outDir, "README.md"), readme);
+
+  console.log(`cell estimate: ${result.cellEstimate}`);
+  console.log(`pin map: ui_in=[${result.pinMap.ui_in.join(",")}] uo_out=[${result.pinMap.uo_out.join(",")}]`);
+  console.log(`status: exported`);
+  console.log(REQUIRED_SILICON_WORDING);
+  console.log(`written to ${outDir}/ (src/, info.yaml, README.md) - nothing was pushed or submitted anywhere.`);
+}
+
 const USAGE =
-  "forge - TapeOut circuit compiler/optimizer/replay/dry-run CLI\n\n" +
+  "forge - TapeOut circuit compiler/optimizer/replay/dry-run/silicon-export CLI\n\n" +
   "usage:\n" +
   "  forge optimize <file> --format hex|csv|expr|netlist [--nin N] [--nout N] --objective area|depth|balanced [--cref N] [--count-buffers] [--out path]\n" +
   "  forge verify-onchain --processor <addr> --id <n> --inputs <hex> [--netlist-hex <file> --nin N --nout N]\n" +
   "  forge replay\n" +
-  "  forge calldata <file-or-hex> --nin N --nout M   (dry-run only - never sends a transaction)\n\n" +
+  "  forge calldata <file-or-hex> --nin N --nout M   (dry-run only - never sends a transaction)\n" +
+  "  forge export-silicon <task-id|netlist-hex-file> [--nin N --nout M] [--slug name] [--out dir]\n" +
+  "      (writes a local repo directory only - never pushes, never submits, never pays)\n\n" +
   "examples:\n" +
   '  forge optimize circuit.expr --format expr --objective area --cref 1728\n' +
   "  forge verify-onchain --processor 0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355 --id 65 --inputs 0x07\n" +
   "  forge replay\n" +
-  "  forge calldata netlist.hex --nin 4 --nout 1\n\n" +
+  "  forge calldata netlist.hex --nin 4 --nout 1\n" +
+  "  forge export-silicon 12 --slug gc012\n\n" +
   "exit codes: 0 on success (and on `verified: true` / all tasks OK); 1 on any error, bad input, or " +
-  "a verification/equivalence failure. Nothing here ever sends a real transaction - verify-onchain " +
-  "and calldata are both read-only/dry-run (BUILD.md section 0, rule 4).";
+  "a verification/equivalence failure, or an export-silicon refusal. Nothing here ever sends a real " +
+  "transaction or submits/pays for fabrication - verify-onchain and calldata are read-only/dry-run " +
+  "(BUILD.md section 0, rule 4), and export-silicon only writes local files (BUILD.md Phase 4 rules).";
 
 async function main() {
   const argv = process.argv.slice(2);
@@ -224,6 +312,10 @@ async function main() {
   }
   if (argv[0] === "calldata") {
     runCalldata(argv);
+    return;
+  }
+  if (argv[0] === "export-silicon") {
+    runExportSilicon(argv);
     return;
   }
   if (argv[0] !== "optimize") {

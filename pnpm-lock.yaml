@@ -52,6 +52,9 @@ importers:
       '@tapeout-forge/core':
         specifier: workspace:*
         version: link:../core
+      '@tapeout-forge/silicon':
+        specifier: workspace:*
+        version: link:../silicon
     devDependencies:
       vitest:
         specifier: ^2.1.4
