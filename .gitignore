@@ -2,3 +2,8 @@ node_modules/
 dist/
 *.tsbuildinfo
 .pnpm-store/
+
+# Foundry build artifacts / deps (contracts/lib fetched via forge install)
+contracts/out/
+contracts/cache/
+contracts/lib/
