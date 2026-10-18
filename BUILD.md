@@ -316,3 +316,11 @@ RULES (extra): No transactions on any real chain. Deploy and tape-out steps are 
 3.5 docs/DEMO.md: a 3-minute script with timestamps, the exact commands/clicks, and what to show on screen; lead with the replay result and the independent verification.
 3.6 docs/USER-STEPS.md: ordered checklist for me: deploy registry (command, expected gas, cost), tape out chosen circuits (calldata from 3.2, fee in OKB), register them, publish the app on DeWEB, make the repo public. Each step says what could go wrong.
 3.7 Tests + CI green. Update docs/NEW.md. Print what passes, what is UNVERIFIED, 3 biggest risks. STOP.
+
+## RESULT OF MERGE (recorded)
+- latch-reconcile merged into main (f53b2f4). 58/58 tests, replay unchanged (22/11/13), Python re-verification 0/22 mismatches.
+- KNOWN GAP: the independent verifier script depended on a /tmp intermediate that was lost; it was rebuilt from the documented task list. Make it self-contained (step 3.0b).
+- TOOLING: 'forge install --no-commit' still stages .gitmodules/lib in this Foundry version. Check 'git status' before every commit.
+
+## PHASE 3 ADDITION
+3.0b Make the independent verifier self-contained and re-runnable by anyone: scripts/verify_independent.py reads a committed tasks.json snapshot (task id, spec, Cref, our netlist hex) from the repo, needs only Python stdlib, takes no network, prints one line per task plus a summary, exits non-zero on any mismatch. Document the one command in the README. Commit the snapshot with the date and source URL it came from.
