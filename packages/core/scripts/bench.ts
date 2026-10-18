@@ -78,7 +78,7 @@ for (const bench of benches) {
     for (let k = 0; k < bench.nOut; k++) cols[k].push(out[k]);
   }
 
-  for (const obj of ["area", "depth", "balanced"] as const) {
+  for (const obj of ["area", "depth", "balanced", "c"] as const) {
     let totalGates = 0;
     let maxDepth = 0;
     for (let k = 0; k < bench.nOut; k++) {
