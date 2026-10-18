@@ -30,3 +30,15 @@ export const X_LAYER_COST: CostConfig = {
 // Not modeled here yet since this project targets X Layer only; noted so nobody
 // assumes the X Layer constant applies cross-chain.
 export const BNB_GAS_PER_GATE_UNVERIFIED = 2317;
+
+// Processor-specific fees for OrderGuard (0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355),
+// VERIFIED 2026-10-18 via direct cast calls on an X Layer fork (BUILD.md 2.3/2.4):
+// TAPEOUT_FEE()=1300000000000000 wei, transistors().mintPrice()=100000000000000 wei,
+// transistors().protocolFee()=660000000000000 wei - these exactly match the figures
+// BUILD.md section 3 had only as 'seen/reported'; now independently re-confirmed live.
+// Per-processor, NOT chain-wide - do not apply to any other processor without re-checking.
+export const ORDERGUARD_FEES = {
+  tapeOutFeeOkb: 0.0013,
+  perTransistorFeeOkb: 0.0001,
+  protocolFeeOkb: 0.00066,
+};
