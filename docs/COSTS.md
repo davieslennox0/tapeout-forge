@@ -152,3 +152,24 @@ and BUILD.md forbids reporting a guessed number as fact.
 That file's cost table is **SUPERSEDED** — it was priced against OrderGuard, a processor never
 shown to be linked to real FabX PoD rewards (see docs/PROCESSOR-EVIDENCE.md). A marker has been
 added to the top of that file; its content is kept for history, not deleted.
+
+## 7.4 — own-processor option (read-only research; document only, nothing built or called)
+
+Factory address with a real primary-source citation: `0x1f09DAeFA827f02CBb40967cc91b259763760761`
+("Processor factory"), sourced from github.com/TapeOutProtocol/TapeKit's own README (fetched via
+`gh api repos/TapeOutProtocol/TapeKit/readme`, already cited in docs/DEWEB-RESEARCH.md — same
+citation, not reused from memory). Confirmed real on-chain: `eth_getCode` returns non-empty,
+proxy-shaped bytecode (embeds the EIP-1967 implementation-slot constant). `name()` reverts
+(consistent with being a factory, not a named processor/token itself).
+
+**UNVERIFIED beyond that**: the exact creation-function ABI and fee, and whether a newly-created
+processor gets its own fresh transistor token or shares an existing one. The EIP-1967
+implementation slot read back as unset (zero) via a direct `eth_getStorageAt`, and three plausible
+read-only selector guesses (`0x25e16063`, `0x18160ddd`, `0xc4d66de8`) all reverted with no data —
+no further probing was done past this point (BUILD.md's own rule: stop and report rather than
+guess indefinitely). TapeKit's README documents this address in the context of its DeWEB/container
+flow, not a TapeOut-protocol processor-creation guide specifically, so it may simply be the wrong
+document to source a creation ABI from. **Conclusion: creating your own processor is a real,
+cited, on-chain-confirmed-to-exist option, but its cost and mechanics are not established here —
+treat as a research TODO for the owner, not a ready path, unless/until someone finds the actual
+TapeOut Protocol factory documentation (not TapeKit's).**
