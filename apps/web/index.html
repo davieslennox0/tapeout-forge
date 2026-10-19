@@ -43,6 +43,23 @@
 <h2>Registry (on-chain best-circuit lookup)</h2>
 <div id="registry"></div>
 
+<h2>Silicon path (stretch, BUILD.md Phase 4)</h2>
+<p class="muted">Tapeout-ready export. We have not ordered fabrication. Ordering is a separate paid step that the circuit owner completes on Tiny Tapeout. We do not claim a physical chip exists. <code>forge export-silicon</code> writes a local repo directory only; it never pushes, submits, or pays for anything itself.</p>
+<table>
+<thead><tr><th>task</th><th>status</th><th>cells</th><th>area (&micro;m&sup2;)</th><th>GDS sha256</th><th>Actions run</th></tr></thead>
+<tbody>
+<tr>
+  <td>GC-012 (4-to-2 one-hot encoder+error detector, the headline q=4.0 beat)</td>
+  <td>exported, real GDS produced &amp; DRC-clean (15/15 Tiny Tapeout precheck checks pass)</td>
+  <td>34</td>
+  <td>173.9168</td>
+  <td><code class="hex">1857e6b1325f19d65bd4647d9ca18c166d2c0ea3dc88464a21ad59729eadf256</code></td>
+  <td><a href="https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/39150702389" target="_blank" rel="noopener">run 39150702389</a></td>
+</tr>
+</tbody>
+</table>
+<p class="muted">The run's overall GitHub Actions status shows <code>failure</code> because two unrelated jobs fail (a GitHub Pages viewer deployment with Pages not enabled on that repo, and a gate-level cocotb test with no testbench provided) — the actual synthesis (<code>gds</code>) and physical-design-rule check (<code>precheck</code>) jobs, which are what this claim depends on, both passed for real. Source: github.com/davieslennox0/maj3-silicon-spike.</p>
+
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
