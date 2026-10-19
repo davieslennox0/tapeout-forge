@@ -70,7 +70,7 @@ sent anywhere. Paste a truth table, boolean expression, or netlist hex and get t
 circuit, cost report, and a downloadable netlist hex; browse the 22 real verified-beat circuits
 with their real netlist hex and ready-to-copy tape-out calldata; check the registry (shows "not
 deployed" honestly - ForgeRegistry is verified on a fork, not deployed to the real chain yet).
-Build it yourself: `pnpm --filter @tapeout-forge/web build` (output in `apps/web/dist`). **The
+Build it yourself: `pnpm --filter @forgeout/web build` (output in `apps/web/dist`). **The
 browser build does not include ABC** (`yosys-abc` is a native binary; it can't run in a
 browser) - `optimize()` falls back to its own Shannon-decomposition/exact-synthesis path there,
 exactly as it does anywhere ABC happens to be missing from `PATH`. The CLI is the only place ABC

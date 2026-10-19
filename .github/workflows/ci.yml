@@ -12,6 +12,9 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      # packages/silicon's real equivalence tests shell out to iverilog/vvp (not optional like
+      # ABC - these tests hard-fail, not skip, if it's missing). Small, standard apt package.
+      - run: sudo apt-get update && sudo apt-get install -y iverilog
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
       - uses: foundry-rs/foundry-toolchain@v1

@@ -80,7 +80,7 @@ keeps coming back as the task bank and the field of competing circuits change ov
 section above, or any plain static host - GitHub Pages, Vercel, etc. all work since it's a
 pure static build with no backend). Until then, point reviewers at the repo itself:
 https://github.com/davieslennox0/tapeout-forge and the build command (`pnpm --filter
-@tapeout-forge/web build`, serve `apps/web/dist`).
+@forgeout/web build`, serve `apps/web/dist`).
 
 ## Demo video
 

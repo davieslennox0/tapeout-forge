@@ -27,7 +27,7 @@ not that it's fast, that it's checkable."
 
 ## 1:05-1:50 - The live web app
 
-Screen: browser, apps/web (built: `pnpm --filter @tapeout-forge/web build`, served locally).
+Screen: browser, apps/web (built: `pnpm --filter @forgeout/web build`, served locally).
 - Click into the "Verified improvements" gallery. Scroll to task 12 (the biggest beat, 4x cap).
   Point at: Cref, our C, q=4.000x, the real netlist hex, the real tape-out calldata, and the
   copy button on each.
