@@ -1,3 +1,5 @@
+> SUPERSEDED (2026-10-19): priced against OrderGuard (0x57F3...a355), a processor never shown to be linked to real FabX PoD rewards. Use docs/COSTS.md (priced against the CONFIRMED FAB_TST processor) instead. Kept here for history, not deleted.
+
 # 2.4: tape-out dry run (real calldata, real fees; gas blocked on a real on-chain gate)
 
 ## ABI (found + verified, not guessed)
