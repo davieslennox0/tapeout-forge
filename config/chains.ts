@@ -13,3 +13,10 @@ export const X_LAYER: ChainConfig = {
 };
 
 export const CHAINS: ChainConfig[] = [X_LAYER];
+
+// The real FabX PoD-mining processor (on-chain name() == "FAB-Genisis"), CONFIRMED via a real
+// decoded claim transaction, not inference. See docs/PROCESSOR-EVIDENCE.md for the evidence and
+// tx hashes. EIP-55 checksummed. Verified consistent against a second, independently-fetched
+// transaction receipt (topic[2] of the claim event) during the 2026-10-19 address integrity check.
+export const FAB_TST_PROCESSOR = "0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6";
+export const FAB_TST_PROCESSOR_NAME = "FAB-Genisis"; // real on-chain name(), not "FAB_TST"

@@ -1,7 +1,9 @@
+import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
+import { keccak256 } from "js-sha3";
 import { packInputBits, callEval, fetchNetlist, verifyOnchain, getCircuitInfo } from "../src/index.js";
 import { evalCombinational } from "@forgeout/core";
-import { X_LAYER } from "../../../config/chains.js";
+import { X_LAYER, FAB_TST_PROCESSOR } from "../../../config/chains.js";
 
 const PROCESSOR = "0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355"; // "OrderGuard" (VERIFIED via name(), see docs/NEW.md)
 const FAB_TST = "0x87bfca3494aa228ff589ab9b642143a5e8c8f9a6"; // "FAB-Genisis" (VERIFIED via name(), see docs/NEW.md)
@@ -51,5 +53,33 @@ describe("callEval against the live X Layer processor (real network)", () => {
     const r = await verifyOnchain(X_LAYER.rpcUrl, FAB_TST, 49n, [1]);
     expect(r.match).toBeNull();
     expect(r.note).toMatch(/UNVERIFIED/);
+  });
+});
+
+describe("FAB_TST processor address integrity (2026-10-19 check: two spellings had appeared across reports, only one in any committed file)", () => {
+  function isEip55Checksummed(address: string): boolean {
+    const addr = address.replace(/^0x/, "");
+    const hash = keccak256(addr.toLowerCase());
+    let expected = "";
+    for (let i = 0; i < addr.length; i++) {
+      const c = addr[i];
+      if (/[0-9]/.test(c)) { expected += c; continue; }
+      expected += parseInt(hash[i], 16) >= 8 ? c.toUpperCase() : c.toLowerCase();
+    }
+    return expected === addr;
+  }
+
+  it("config/chains.ts's FAB_TST_PROCESSOR is EIP-55 checksummed", () => {
+    expect(isEip55Checksummed(FAB_TST_PROCESSOR)).toBe(true);
+  });
+
+  it("config/chains.ts's FAB_TST_PROCESSOR matches the address docs/PROCESSOR-EVIDENCE.md confirms", () => {
+    const evidence = readFileSync(
+      new URL("../../../docs/PROCESSOR-EVIDENCE.md", import.meta.url),
+      "utf8",
+    );
+    const m = evidence.match(/Use `(0x[0-9a-fA-F]{40})` for anything targeting FabX PoD mining/);
+    expect(m).not.toBeNull();
+    expect(m![1].toLowerCase()).toBe(FAB_TST_PROCESSOR.toLowerCase());
   });
 });
