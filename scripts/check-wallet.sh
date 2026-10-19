@@ -19,8 +19,8 @@ echo "nonce:   $NONCE"
 
 if [ "$#" -gt 0 ]; then
   echo
-  echo "Real spend cap (config/cost.ts PHASE5_SPEND_CAP_OKB): 0.31596 OKB"
-  echo "NOTE: FAB_TST transistor supply is currently EXHAUSTED on the real chain"
-  echo "      (see docs/COSTS.md) - minting new transistors will revert 'supply cap'"
-  echo "      regardless of how much OKB this address holds."
+  echo "PHASE 7: go-live targets OrderGuard (0x57F3...a355), not FAB_TST."
+  echo "FAB_TST's transistor supply is exhausted with no acquisition route found"
+  echo "(docs/ACQUIRE-AND-CLAIM.md) - that path is set aside, not used by default."
+  echo "OrderGuard's own transistor contract has real headroom (see docs/COSTS.md)."
 fi

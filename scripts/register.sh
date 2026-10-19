@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Register a REAL already-taped-out circuit in ForgeRegistry. Requires the real circuit id
-# from a prior real tapeout (confirmed manually by the owner, per tapeout.sh's own output -
-# this project never confirmed FAB_TST's exact return-value/event encoding, so circuit ids are
-# never auto-parsed/guessed here either).
+# from a prior real tapeout (confirmed manually by the owner, per tapeout.sh's own output).
+# PHASE 7: retargeted from FAB_TST to OrderGuard (see docs/ACQUIRE-AND-CLAIM.md).
 #
 # For nIn <= 6: fetches the REAL expected outputs via real eval() calls on the deployed circuit
 # and lets the registry verify on-chain itself. For nIn > 6: attestation-only path (empty
@@ -22,7 +21,9 @@ BROADCAST=0
 
 RPC="https://rpc.xlayer.tech"
 CHAIN_ID=196
-PROCESSOR="0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6"  # FAB_TST, CONFIRMED
+# Must match config/chains.ts's ACTIVE_PROCESSOR / ACTIVE_PROCESSOR_NAME.
+PROCESSOR="0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355"  # OrderGuard (PHASE 7 default)
+PROCESSOR_NAME_EXPECTED="OrderGuard"
 REGISTRY="${FORGE_REGISTRY_ADDRESS:-}"
 FOUNDRY_BIN="${FOUNDRY_BIN:-$HOME/.foundry/bin}"
 CAST="$FOUNDRY_BIN/cast"
@@ -32,6 +33,19 @@ if [ -z "$REGISTRY" ]; then
   echo "Set FORGE_REGISTRY_ADDRESS (from config/chains.ts, after scripts/deploy-registry.sh)." >&2
   exit 1
 fi
+
+echo "== safety guard: confirming processor identity on-chain before anything else =="
+REAL_CODE=$("$CAST" code "$PROCESSOR" --rpc-url "$RPC")
+if [ "$REAL_CODE" = "0x" ] || [ -z "$REAL_CODE" ]; then
+  echo "ABORT: eth_getCode on $PROCESSOR is empty - this address has no contract. Refusing to proceed." >&2
+  exit 1
+fi
+REAL_NAME=$("$CAST" call "$PROCESSOR" "name()(string)" --rpc-url "$RPC")
+if [ "$REAL_NAME" != "\"$PROCESSOR_NAME_EXPECTED\"" ] && [ "$REAL_NAME" != "$PROCESSOR_NAME_EXPECTED" ]; then
+  echo "ABORT: processor name() returned '$REAL_NAME', expected '$PROCESSOR_NAME_EXPECTED'." >&2
+  exit 1
+fi
+echo "ok: $PROCESSOR has code and name() == $PROCESSOR_NAME_EXPECTED"
 
 read -r NIN NOUT GATES DEPTH << EOF
 $(python3 -c "

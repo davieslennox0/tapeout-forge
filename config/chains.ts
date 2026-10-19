@@ -16,7 +16,25 @@ export const CHAINS: ChainConfig[] = [X_LAYER];
 
 // The real FabX PoD-mining processor (on-chain name() == "FAB-Genisis"), CONFIRMED via a real
 // decoded claim transaction, not inference. See docs/PROCESSOR-EVIDENCE.md for the evidence and
-// tx hashes. EIP-55 checksummed. Verified consistent against a second, independently-fetched
-// transaction receipt (topic[2] of the claim event) during the 2026-10-19 address integrity check.
+// tx hashes. EIP-55 checksummed.
+// PHASE 6: this processor's transistor contract (same as FAB-Genesis NFT, 0xBe6f...eb714) is
+// EXHAUSTED on the real chain (1,000,000/1,000,000 minted) with no acquisition route found
+// (docs/ACQUIRE-AND-CLAIM.md). This path is SET ASIDE, not pursued further. Kept here for
+// reference only - do not target this processor in any script by default.
 export const FAB_TST_PROCESSOR = "0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6";
 export const FAB_TST_PROCESSOR_NAME = "FAB-Genisis"; // real on-chain name(), not "FAB_TST"
+
+// OrderGuard: the hackathon-path processor (PHASE 7 retarget, since FAB_TST is blocked).
+// name() == "OrderGuard", read live via eth_call 2026-10-19 (selector 0x06fdde03), not copied
+// from any doc. Its own separate transistor contract has real headroom, re-verified live
+// 2026-10-19: supplyCap()=10000, minted()=42, mintPrice()=0.0001 OKB, protocolFee()=0.00066 OKB,
+// TAPEOUT_FEE()=0.0013 OKB (all unchanged from earlier measurements - still current).
+export const ORDERGUARD_PROCESSOR = "0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355";
+export const ORDERGUARD_PROCESSOR_NAME = "OrderGuard"; // real on-chain name(), read live
+export const ORDERGUARD_TRANSISTORS = "0x8e71FC45ff47E5a7bA1ad2960793ebAdD2739D9e";
+
+// The processor every broadcast script targets by default. PHASE 7: retargeted to OrderGuard
+// because FAB_TST's transistor supply is exhausted with no acquisition route (see above).
+export const ACTIVE_PROCESSOR = ORDERGUARD_PROCESSOR;
+export const ACTIVE_PROCESSOR_NAME = ORDERGUARD_PROCESSOR_NAME;
+export const ACTIVE_TRANSISTORS = ORDERGUARD_TRANSISTORS;

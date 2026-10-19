@@ -1,17 +1,14 @@
 #!/usr/bin/env bash
-# Tape out one of this project's own real netlists (by gallery.full.json id) against the
-# CONFIRMED FAB_TST processor. Mints transistors first if the caller's balance is short.
+# Tape out one of this project's own real netlists (by gallery.full.json id) against OrderGuard.
+# PHASE 7: retargeted from FAB_TST (transistor supply exhausted, no acquisition route - see
+# docs/ACQUIRE-AND-CLAIM.md) to OrderGuard, which has real transistor-supply headroom.
+# Mints transistors first if the caller's balance is short.
 # DRY-RUN by default (prints calldata + real cost, never sends). --broadcast requires a typed
 # confirmation of the exact total OKB, the processor address, and chain id 196, and refuses if
-# the computed cost exceeds config/cost.ts's PHASE5_SPEND_CAP_OKB.
+# the computed cost exceeds config/cost.ts's spend cap.
 #
-# KNOWN REAL BLOCKER (docs/COSTS.md): FAB_TST's transistor supply is exhausted on the real
-# chain right now (supplyCap()==minted()). The mint step below WILL revert "supply cap" for
-# any address that doesn't already hold enough transistors. This script surfaces that revert
-# reason plainly; it does not retry, hide, or work around it.
-#
-# Key handling: same as deploy-registry.sh - KEYSTORE_ACCOUNT or KEY_FILE only, never
-# --private-key on this command line, never read/echoed/logged by this script.
+# Key handling: KEYSTORE_ACCOUNT or KEY_FILE only, never --private-key on this command line,
+# never read/echoed/logged by this script.
 #
 # Usage: scripts/tapeout.sh <task-id> [--broadcast]
 set -euo pipefail
@@ -23,11 +20,12 @@ BROADCAST=0
 
 RPC="https://rpc.xlayer.tech"
 CHAIN_ID=196
-PROCESSOR="0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6"      # FAB_TST, CONFIRMED - docs/PROCESSOR-EVIDENCE.md
-PROCESSOR_NAME_EXPECTED="FAB-Genisis"                          # real on-chain name(), verified live
-TRANSISTORS="0xBe6f94115D32f3AC3252bc4626573e739bEeb714"      # == FAB-Genesis NFT contract, same address
+# Must match config/chains.ts's ACTIVE_PROCESSOR / ACTIVE_PROCESSOR_NAME / ACTIVE_TRANSISTORS.
+PROCESSOR="0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355"      # OrderGuard (PHASE 7 default)
+PROCESSOR_NAME_EXPECTED="OrderGuard"                          # real on-chain name(), verified live
+TRANSISTORS="0x8e71FC45ff47E5a7bA1ad2960793ebAdD2739D9e"      # OrderGuard's own transistor contract
 TAPEOUT_FEE_WEI=1300000000000000
-MINT_PRICE_WEI=500000000000000
+MINT_PRICE_WEI=100000000000000
 PROTOCOL_FEE_WEI=660000000000000
 SPEND_CAP_OKB=0.31596
 
@@ -36,13 +34,18 @@ CAST="$FOUNDRY_BIN/cast"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "== safety guard: confirming processor identity on-chain before anything else =="
+REAL_CODE=$("$CAST" code "$PROCESSOR" --rpc-url "$RPC")
+if [ "$REAL_CODE" = "0x" ] || [ -z "$REAL_CODE" ]; then
+  echo "ABORT: eth_getCode on $PROCESSOR is empty - this address has no contract. Refusing to proceed." >&2
+  exit 1
+fi
 REAL_NAME=$("$CAST" call "$PROCESSOR" "name()(string)" --rpc-url "$RPC")
 if [ "$REAL_NAME" != "\"$PROCESSOR_NAME_EXPECTED\"" ] && [ "$REAL_NAME" != "$PROCESSOR_NAME_EXPECTED" ]; then
   echo "ABORT: processor name() returned '$REAL_NAME', expected '$PROCESSOR_NAME_EXPECTED'." >&2
   echo "The configured processor address may be wrong. Refusing to proceed." >&2
   exit 1
 fi
-echo "ok: $PROCESSOR name() == $PROCESSOR_NAME_EXPECTED"
+echo "ok: $PROCESSOR has code and name() == $PROCESSOR_NAME_EXPECTED"
 
 NETLIST_HEX=$(python3 -c "
 import json
@@ -98,7 +101,7 @@ echo "Type the exact chain id ($CHAIN_ID), then press enter:"
 read -r TYPED_CHAIN
 [ "$TYPED_CHAIN" = "$CHAIN_ID" ] || { echo "Chain id did not match. Aborting." >&2; exit 1; }
 
-echo "Minting transistors (will revert 'supply cap' if the real supply is still exhausted)..."
+echo "Minting transistors..."
 MINT_TX=$("$CAST" send "$TRANSISTORS" "mint(uint256,uint256)" 0 "$GATES" --value "$MINT_COST_WEI" --rpc-url "$RPC" "${SIGNER_ARGS[@]}" --json)
 echo "$MINT_TX"
 
@@ -109,7 +112,7 @@ TXHASH=$(echo "$TO_TX" | python3 -c "import json,sys; print(json.load(sys.stdin)
 
 echo
 echo "Parsing circuit id from the real receipt (event topic0 0xc11215e4..., confirmed live on a"
-echo "fork test 2026-10-19: topics[1]=circuitId, topics[2]=sender, data word[0]=gates):"
+echo "fork test: topics[1]=circuitId, topics[2]=sender, data word[0]=gates):"
 RECEIPT_JSON=$("$CAST" receipt "$TXHASH" --rpc-url "$RPC" --json)
 CIRCUIT_ID=$(echo "$RECEIPT_JSON" | python3 -c "
 import json, sys
