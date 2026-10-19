@@ -42,3 +42,27 @@ export const ORDERGUARD_FEES = {
   perTransistorFeeOkb: 0.0001,
   protocolFeeOkb: 0.00066,
 };
+
+// Processor-specific fees for FAB_TST (0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6), the
+// CONFIRMED real FabX PoD processor (docs/PROCESSOR-EVIDENCE.md) - VERIFIED 2026-10-19 via
+// direct cast calls against the real chain (not a fork): TAPEOUT_FEE()=1300000000000000 wei,
+// transistors()=0xBe6f94115D32f3AC3252bc4626573e739bEeb714 (the SAME contract as the
+// FAB-Genesis NFT - not a separate transistors contract), mintPrice()=500000000000000 wei
+// (DIFFERENT from OrderGuards 0.0001 - do not reuse that number for this processor),
+// protocolFee()=660000000000000 wei. Do not conflate with ORDERGUARD_FEES above.
+export const FAB_TST_FEES = {
+  tapeOutFeeOkb: 0.0013,
+  perTransistorFeeOkb: 0.0005,
+  protocolFeeOkb: 0.00066,
+};
+
+// CRITICAL, VERIFIED 2026-10-19: FAB_TST transistors supply is EXHAUSTED on the real chain
+// right now - supplyCap()==minted()==1000000. A live mint(0,1) simulation from a fresh EOA
+// reverts "supply cap". No new transistors can currently be minted by anyone. See
+// docs/COSTS.md. Scripts must surface this, not silently retry/hide it.
+export const FAB_TST_TRANSISTOR_SUPPLY_EXHAUSTED = true;
+
+// Hard spend cap for Phase 5 go-live scripts (BUILD.md Phase 5 rule: "spend cap from config").
+// = docs/COSTS.md real total for the 5 planned beats (0.2633 OKB) x 1.2 margin.
+// Every spending script must refuse to --broadcast if its own computed real cost exceeds this.
+export const PHASE5_SPEND_CAP_OKB = 0.31596;

@@ -1,0 +1,129 @@
+#!/usr/bin/env bash
+# Tape out one of this project's own real netlists (by gallery.full.json id) against the
+# CONFIRMED FAB_TST processor. Mints transistors first if the caller's balance is short.
+# DRY-RUN by default (prints calldata + real cost, never sends). --broadcast requires a typed
+# confirmation of the exact total OKB, the processor address, and chain id 196, and refuses if
+# the computed cost exceeds config/cost.ts's PHASE5_SPEND_CAP_OKB.
+#
+# KNOWN REAL BLOCKER (docs/COSTS.md): FAB_TST's transistor supply is exhausted on the real
+# chain right now (supplyCap()==minted()). The mint step below WILL revert "supply cap" for
+# any address that doesn't already hold enough transistors. This script surfaces that revert
+# reason plainly; it does not retry, hide, or work around it.
+#
+# Key handling: same as deploy-registry.sh - KEYSTORE_ACCOUNT or KEY_FILE only, never
+# --private-key on this command line, never read/echoed/logged by this script.
+#
+# Usage: scripts/tapeout.sh <task-id> [--broadcast]
+set -euo pipefail
+
+TASK="${1:?usage: tapeout.sh <task-id> [--broadcast]}"
+shift || true
+BROADCAST=0
+[ "${1:-}" = "--broadcast" ] && BROADCAST=1
+
+RPC="https://rpc.xlayer.tech"
+CHAIN_ID=196
+PROCESSOR="0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6"      # FAB_TST, CONFIRMED - docs/PROCESSOR-EVIDENCE.md
+PROCESSOR_NAME_EXPECTED="FAB-Genisis"                          # real on-chain name(), verified live
+TRANSISTORS="0xBe6f94115D32f3AC3252bc4626573e739bEeb714"      # == FAB-Genesis NFT contract, same address
+TAPEOUT_FEE_WEI=1300000000000000
+MINT_PRICE_WEI=500000000000000
+PROTOCOL_FEE_WEI=660000000000000
+SPEND_CAP_OKB=0.31596
+
+FOUNDRY_BIN="${FOUNDRY_BIN:-$HOME/.foundry/bin}"
+CAST="$FOUNDRY_BIN/cast"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+echo "== safety guard: confirming processor identity on-chain before anything else =="
+REAL_NAME=$("$CAST" call "$PROCESSOR" "name()(string)" --rpc-url "$RPC")
+if [ "$REAL_NAME" != "\"$PROCESSOR_NAME_EXPECTED\"" ] && [ "$REAL_NAME" != "$PROCESSOR_NAME_EXPECTED" ]; then
+  echo "ABORT: processor name() returned '$REAL_NAME', expected '$PROCESSOR_NAME_EXPECTED'." >&2
+  echo "The configured processor address may be wrong. Refusing to proceed." >&2
+  exit 1
+fi
+echo "ok: $PROCESSOR name() == $PROCESSOR_NAME_EXPECTED"
+
+NETLIST_HEX=$(python3 -c "
+import json
+d = json.load(open('$ROOT/apps/web/src/data/gallery.full.json'))
+row = next(r for r in d if r['id'] == $TASK)
+print(row['netlistHex'])
+print(row['nIn'])
+print(row['nOut'])
+print(row['totalGates'])
+" )
+NL=$(echo "$NETLIST_HEX" | sed -n 1p)
+NIN=$(echo "$NETLIST_HEX" | sed -n 2p)
+NOUT=$(echo "$NETLIST_HEX" | sed -n 3p)
+GATES=$(echo "$NETLIST_HEX" | sed -n 4p)
+
+MINT_COST_WEI=$(python3 -c "print($GATES * $MINT_PRICE_WEI + $PROTOCOL_FEE_WEI)")
+TOTAL_WEI=$(python3 -c "print($MINT_COST_WEI + $TAPEOUT_FEE_WEI)")
+TOTAL_OKB=$(python3 -c "print($TOTAL_WEI / 1e18)")
+
+echo
+echo "task GC-$(printf '%03d' "$TASK"): nIn=$NIN nOut=$NOUT gates=$GATES"
+echo "real fee math: mint=$MINT_COST_WEI wei + tapeout=$TAPEOUT_FEE_WEI wei => total=$TOTAL_OKB OKB"
+echo "calldata (tapeout): $("$CAST" calldata "tapeout(bytes,uint32,uint32)" "$NL" "$NIN" "$NOUT")"
+
+if [ "$BROADCAST" -eq 0 ]; then
+  echo
+  echo "Dry run only. Re-run with --broadcast to actually mint+tapeout (will ask for a typed confirmation first)."
+  exit 0
+fi
+
+if [ -z "${KEYSTORE_ACCOUNT:-}" ] && [ -z "${KEY_FILE:-}" ]; then
+  echo "Set KEYSTORE_ACCOUNT or KEY_FILE (never a raw private key on this command line)." >&2
+  exit 1
+fi
+SIGNER_ARGS=()
+[ -n "${KEYSTORE_ACCOUNT:-}" ] && SIGNER_ARGS=(--account "$KEYSTORE_ACCOUNT") || SIGNER_ARGS=(--keystore "$KEY_FILE")
+
+CAP_CHECK=$(python3 -c "print(1 if $TOTAL_OKB > $SPEND_CAP_OKB else 0)")
+if [ "$CAP_CHECK" = "1" ]; then
+  echo "ABORT: real cost $TOTAL_OKB OKB exceeds the configured spend cap $SPEND_CAP_OKB OKB." >&2
+  exit 1
+fi
+
+echo
+echo "=== BROADCAST CONFIRMATION REQUIRED ==="
+echo "Type the exact total OKB shown above ($TOTAL_OKB), then press enter:"
+read -r TYPED_COST
+[ "$TYPED_COST" = "$TOTAL_OKB" ] || { echo "Cost did not match. Aborting." >&2; exit 1; }
+echo "Type the exact processor address ($PROCESSOR), then press enter:"
+read -r TYPED_ADDR
+[ "$TYPED_ADDR" = "$PROCESSOR" ] || { echo "Address did not match. Aborting." >&2; exit 1; }
+echo "Type the exact chain id ($CHAIN_ID), then press enter:"
+read -r TYPED_CHAIN
+[ "$TYPED_CHAIN" = "$CHAIN_ID" ] || { echo "Chain id did not match. Aborting." >&2; exit 1; }
+
+echo "Minting transistors (will revert 'supply cap' if the real supply is still exhausted)..."
+MINT_TX=$("$CAST" send "$TRANSISTORS" "mint(uint256,uint256)" 0 "$GATES" --value "$MINT_COST_WEI" --rpc-url "$RPC" "${SIGNER_ARGS[@]}" --json)
+echo "$MINT_TX"
+
+echo "Taping out..."
+TO_TX=$("$CAST" send "$PROCESSOR" "tapeout(bytes,uint32,uint32)" "$NL" "$NIN" "$NOUT" --value "$TAPEOUT_FEE_WEI" --rpc-url "$RPC" "${SIGNER_ARGS[@]}" --json)
+echo "$TO_TX"
+TXHASH=$(echo "$TO_TX" | python3 -c "import json,sys; print(json.load(sys.stdin)['transactionHash'])")
+
+echo
+echo "Parsing circuit id from the real receipt (event topic0 0xc11215e4..., confirmed live on a"
+echo "fork test 2026-10-19: topics[1]=circuitId, topics[2]=sender, data word[0]=gates):"
+RECEIPT_JSON=$("$CAST" receipt "$TXHASH" --rpc-url "$RPC" --json)
+CIRCUIT_ID=$(echo "$RECEIPT_JSON" | python3 -c "
+import json, sys
+r = json.load(sys.stdin)
+for log in r['logs']:
+    if log['topics'][0].lower().startswith('0xc11215e4'):
+        print(int(log['topics'][1], 16))
+        break
+" )
+if [ -z "$CIRCUIT_ID" ]; then
+  echo "Could not find the expected event in this receipt - printing it raw instead, read it yourself:"
+  echo "$RECEIPT_JSON"
+else
+  echo "circuitId: $CIRCUIT_ID"
+  echo "- $(date -u +%Y-%m-%d): processor=$PROCESSOR circuitId=$CIRCUIT_ID tx=$TXHASH" >> "$ROOT/docs/TAPEOUTS.md"
+  echo "appended to docs/TAPEOUTS.md"
+fi
