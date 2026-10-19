@@ -65,4 +65,14 @@ export const FAB_TST_TRANSISTOR_SUPPLY_EXHAUSTED = true;
 // Hard spend cap for Phase 5 go-live scripts (BUILD.md Phase 5 rule: "spend cap from config").
 // = docs/COSTS.md real total for the 5 planned beats (0.2633 OKB) x 1.2 margin.
 // Every spending script must refuse to --broadcast if its own computed real cost exceeds this.
+// STALE as of PHASE 8: this was priced against FAB_TST, which Phase 7 retargeted away from
+// (transistor supply exhausted, no acquisition route). Kept only as a historical reference -
+// no script should read this constant for the current OrderGuard-targeted plan.
 export const PHASE5_SPEND_CAP_OKB = 0.31596;
+
+// PHASE 8: real OrderGuard-priced spend cap. = docs/COSTS.md's Phase 8 funding total for the
+// GC-039 variant (fees 0.0447 + gas x price x 1.5 safety ~0.000817 = ~0.045517 OKB) x 1.2 margin,
+// using the live eth_gasPrice read 2026-10-19 (20,000,001 wei/gas). Covers the cheaper GC-014
+// variant (~0.0343 OKB) too, since it is the higher of the two. This is the cap every current
+// broadcast script should actually check.
+export const PHASE8_SPEND_CAP_OKB = 0.05462;

@@ -173,3 +173,47 @@ document to source a creation ABI from. **Conclusion: creating your own processo
 cited, on-chain-confirmed-to-exist option, but its cost and mechanics are not established here —
 treat as a research TODO for the owner, not a ready path, unless/until someone finds the actual
 TapeOut Protocol factory documentation (not TapeKit's).**
+
+---
+
+# PHASE 8: real gas facts, final funding math (supersedes the "funding target... UNVERIFIED" note above)
+
+## 8.1 — real gas-price and gas-cap facts (RPC https://rpc.xlayer.tech, 2026-10-19)
+
+- `eth_gasPrice` = **20,000,001 wei/gas** (live read).
+- `eth_call` with an explicit `gas` parameter of `20,000,000` against OrderGuard's real
+  deployed `name()` succeeded cleanly (returned "OrderGuard") — no "gas cap"/"exceeds block gas
+  limit" error at this gas level. X Layer's real block gas limit is 210,000,000 (BUILD.md),
+  so even GC-039's 18.19M-gas register call uses only ~8.7% of a block.
+
+## 8.2 — real funding math, two variants
+
+Formula: total OKB = fees (incl. transistor mints, already in the table above) + (all real
+gas × live gas price × 1.5 safety margin).
+
+**Variant A (GC-039 included)**: fees 0.0447 OKB + gas (27,237,605 total: 460,958 registry
+deploy + 431,995 mints + 2,014,817 tapeouts + 24,329,835 registers) × 20,000,001 wei/gas × 1.5
+≈ 0.0008171 OKB → **total 0.045517 OKB**. Fund the 20%-margin cap: **0.05462 OKB**.
+
+**Variant B (GC-014 substituted for GC-039)** — GC-014 real fork-tested as a drop-in
+replacement (2026-10-19, fresh Anvil fork, impersonated test address, never the real chain):
+mint 86,399 gas → tapeout 252,933 gas (real circuit id 6, parsed from the receipt event) →
+register 752,379 gas, **onchainVerified=true** (nIn=4≤6, on-chain-verify path, not
+attestation). Fees: 0.0447 − GC-039's 0.01386 + GC-014's 0.00316 (12 gates × 0.0001 + 0.00066
+mint, + 0.0013 tapeout) = 0.034 OKB. Transistors: 349 − 119 + 12 = 242 (headroom 9,758 after).
+Gas: 9,512,115 total × 20,000,001 × 1.5 ≈ 0.000285 OKB → **total 0.034285 OKB**.
+
+**Both totals explicitly include gas now** (this was the ambiguity flagged after Phase 7) —
+gas turns out to be a small fraction of the real cost either way (~1.8% of variant A's total,
+~0.8% of variant B's).
+
+**GC-039 is now explicitly marked OPTIONAL and LAST** in docs/GO-LIVE.md's runbook, gated on a
+fresh `cast estimate` check immediately before sending it, given its real 18.19M-gas register
+step is an order-of-magnitude outlier among these 5 circuits.
+
+**Spend-cap bug found and fixed**: `scripts/tapeout.sh` and `config/cost.ts` still carried the
+stale FAB_TST-era spend cap (0.31596 OKB, ~7x too high to be a meaningful guard for the
+OrderGuard-priced plan) from before Phase 7's retarget — never updated at the time. Fixed to
+the real Variant-A-covering cap, **0.05462 OKB**, in both places (`config/cost.ts`'s new
+`PHASE8_SPEND_CAP_OKB`, `scripts/tapeout.sh`'s `SPEND_CAP_OKB`). The old constant is kept,
+labeled stale, for history.

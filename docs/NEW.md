@@ -172,3 +172,28 @@ n=4 exact library NOT built: per-class SAT too slow (75/3984 classes in 16 min, 
 - 2026-10-19: 7.5 (branch phase7-retarget). docs/GO-LIVE.md rewritten for the OrderGuard retarget: removed the FAB_TST hard-blocker framing from step 0 (replaced with an honest note that FAB_TST is set aside, OrderGuard is used instead), updated funding amount to the real 0.0447 OKB total / 0.05364 OKB cap (was 0.2633/0.31596 for the old FAB_TST 5-beat list), updated the tape-out order to GC-012/037/050/039/046, added the real per-circuit register gas warning for GC-039 (18.2M gas, an order of magnitude above the others). docs/USER-STEPS.md's step 2 rewritten in place (step 1/3/4/4a/4b/5 untouched) to point at the new docs/COSTS.md OrderGuard table and final circuit list instead of the superseded FAB_TST pricing. docs/SUBMISSION.md and docs/DEMO.md NOT touched, per BUILD.md's explicit instruction for this phase.
 
 - 2026-10-19: 7.6 gated merge PASSED and completed. 68/68 tests green (60 vitest + 8 forge, both run fresh on phase7-retarget before merging), real GitHub Actions CI green on all 3 branch pushes plus the post-merge push to main (run 39240271755), full branch-diff grep for key-shaped material found zero real hits (only prose mentions of "private key" safety rules and short hex fragments). Merged via throwaway branch merge-check, clean fast-forward (main had not moved), no force-push, no deletions - phase7-retarget and merge-check both preserved on origin. Final main commit: b3e8369. PHASE 7 COMPLETE.
+
+- 2026-10-19: PHASE 8 (pre-flight for the owner's broadcast).
+  8.1: real eth_gasPrice=20,000,001 wei/gas (rpc.xlayer.tech, 2026-10-19); a 20,000,000-gas
+  eth_call against OrderGuard succeeds cleanly, no gas-cap error (X Layer block limit
+  210,000,000 - GC-039's 18.19M-gas register uses ~8.7% of a block).
+  8.2: real funding math, gas now included explicitly. Variant A (GC-039): 0.045517 OKB
+  (0.0447 fees + ~0.000817 gas x1.5). Variant B (GC-014 swapped in, real fork-tested
+  mint->tapeout->register: 86399+252933+752379 gas, onchainVerified=true, circuitId=6 parsed
+  from the real receipt event): 0.034285 OKB. GC-039 marked OPTIONAL/LAST in docs/GO-LIVE.md,
+  gated on a fresh estimate check. Found and fixed a real bug: scripts/tapeout.sh and
+  config/cost.ts still carried the stale FAB_TST-era spend cap (0.31596 OKB) from before
+  Phase 7's retarget - never updated. Fixed both to 0.05462 OKB (PHASE8_SPEND_CAP_OKB).
+  8.3: scripts/preflight.sh (read-only, 6 checks, PASS/FAIL per item, exit non-zero on any
+  FAIL). Real-tested against the real chain: a funded real address passes all checks; a
+  genuinely under-funded real address correctly FAILs the balance check (0.0155 OKB held vs
+  0.034285 needed). Caught a real parsing bug along the way (cast prints large uints as
+  "N [sci]", e.g. "10000 [1e4]" - fixed with an awk helper before trusting any PASS/FAIL).
+  8.4: scripts/verify-live.sh (read-only, byte-for-byte netlist check + on-chain eval
+  cross-check + registry-entry read + docs/TAPEOUTS.md append). Real-tested against this
+  session's own fresh fork run (GC-014, circuit id 6): netlist bytes matched exactly, all 16
+  real input rows evaluated on-chain with no reverts, registry entry read back correctly
+  (verified=true) - SUMMARY: PASS.
+  8.5: docs/GO-LIVE.md rewritten as a single copy-paste runbook - every command has its
+  expected output shape, the on-chain check to run after, and explicit "if it fails: STOP, do
+  not retry blindly" guidance (a failed tape-out/register can still cost real gas).
