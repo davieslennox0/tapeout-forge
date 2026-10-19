@@ -15,7 +15,7 @@ cd "$REPO_ROOT"
 
 echo "== 1. build =="
 pnpm install
-pnpm --filter @tapeout-forge/web build
+pnpm --filter @forgeout/web build
 
 echo "== 2. backup Caddyfile =="
 TS="$(date +%Y%m%d-%H%M%S)"

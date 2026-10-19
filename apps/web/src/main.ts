@@ -1,11 +1,16 @@
 // 3.1: static app, TS engine runs entirely in the browser (no backend). Mirrors
 // packages/cli's `forge optimize` logic (see docs/NEW.md) so the two stay consistent.
+// Restyled per the approved design mockup; all real engine calls below are unchanged
+// from the pre-redesign version, only the DOM output is restructured.
 import {
   parse as parseNetlist, serialize, exhaustiveTruthTable, fromRows, parseHex,
   optimize, computeCost, checkEquivalence, type Netlist, type Objective,
-} from '@tapeout-forge/core';
+} from '@forgeout/core';
 import { exprToRows } from './expr.js';
 import gallery from './data/gallery.json';
+import { PRODUCT_NAME } from '../../../config/name.js';
+
+document.title = PRODUCT_NAME;
 
 const $ = (id: string) => document.getElementById(id)!;
 let lastHex = '';
@@ -34,7 +39,7 @@ function loadTarget(): { nIn: number; tt: bigint; before?: Netlist } {
     const ninStr = ($('nin') as HTMLInputElement).value;
     const rows = content.split(/\r?\n/).filter((l) => l.length > 0).map((l) => (l.trim() === '1' ? 1 : 0));
     const nIn = ninStr ? Number(ninStr) : Math.log2(rows.length);
-    if (!Number.isInteger(nIn) || rows.length !== 1 << nIn) throw new Error(`csv has ${rows.length} rows; not a power of 2, or doesn't match --nIn`);
+    if (!Number.isInteger(nIn) || rows.length !== 1 << nIn) throw new Error(`csv has ${rows.length} rows; not a power of 2, or doesn't match nIn`);
     return { nIn, tt: fromRows(rows) };
   }
   // hex (netlist or truth-table hex)
@@ -52,11 +57,16 @@ function loadTarget(): { nIn: number; tt: bigint; before?: Netlist } {
   return { nIn: nin, tt: parseHex(nin, content) };
 }
 
-function reportLine(label: string, nl: Netlist) {
-  const c = computeCost(nl, { gasFixed: 43783, gasPerGate: 1952 });
-  return `${label}: gates=${c.userGates} depth=${c.depthWithoutBuffers} ` +
-    `(with 2×nOut buffers: gates=${c.userGates + c.bufferGates} depth=${c.depthWithBuffers}) ` +
-    `gas≈${c.gasPerEval} C(no-buf)=${c.fabx.withoutBuffers.C} C(buf)=${c.fabx.withBuffers.C}`;
+function fmtNum(n: number): string {
+  return n.toLocaleString('en-US');
+}
+
+function resultRow(label: string, before: string | number, after: string | number, changed: boolean): string {
+  return `<div style="display:grid;grid-template-columns:minmax(150px,1.5fr) 1fr 1fr;gap:12px;padding:12px 0;border-bottom:1px solid #262B31;align-items:baseline">
+    <span style="color:#B7BEC4">${label}</span>
+    <span style="text-align:right" class="mono">${before}</span>
+    <span style="text-align:right" class="mono" style="${changed ? 'color:#E0904F;font-weight:500' : ''}">${after}</span>
+  </div>`;
 }
 
 $('run').addEventListener('click', () => {
@@ -67,28 +77,55 @@ $('run').addEventListener('click', () => {
     const crefStr = ($('cref') as HTMLInputElement).value;
     const cref = crefStr ? Number(crefStr) : undefined;
     const result = optimize(nIn, tt, objective, { cref });
-    let verifyLine: string;
+    const GAS = { gasFixed: 43783, gasPerGate: 1952 };
+    const afterCost = computeCost(result.netlist, GAS);
+
+    let verified: boolean;
+    let verifyMethod: string;
     if (before) {
       const eq = checkEquivalence(before, result.netlist);
-      verifyLine = `verified: ${eq.equivalent} (method=${eq.method})`;
+      verified = eq.equivalent;
+      verifyMethod = eq.method;
     } else {
       const got = exhaustiveTruthTable(result.netlist).map((r) => r[0]);
       const want = Array.from({ length: 1 << nIn }, (_, x) => Number((tt >> BigInt(x)) & 1n));
-      verifyLine = `verified: ${JSON.stringify(got) === JSON.stringify(want)} (method=exhaustive, direct truth-table comparison)`;
+      verified = JSON.stringify(got) === JSON.stringify(want);
+      verifyMethod = 'exhaustive, direct truth-table comparison';
     }
+
     const hex = '0x' + bytesToHex(serialize(result.netlist));
     lastHex = hex;
-    const lines = [
-      before ? reportLine('before', before) : null,
-      reportLine('after', result.netlist),
-      verifyLine,
-      cref !== undefined ? `Cref=${cref} metCref4xCap=${result.metCref4xCap}` : null,
-      `netlist (nIn=${nIn}, nOut=1): ${hex}`,
-    ].filter(Boolean);
-    out.innerHTML = '<pre>' + lines.join('\n') + '</pre>';
+
+    const beforeCost = before ? computeCost(before, GAS) : null;
+    const rows = [
+      ['NAND gates', beforeCost ? beforeCost.userGates : '—', afterCost.userGates],
+      ['Depth', beforeCost ? beforeCost.depthWithoutBuffers : '—', afterCost.depthWithoutBuffers],
+      ['Eval gas, estimated', beforeCost ? fmtNum(beforeCost.gasPerEval) : '—', fmtNum(afterCost.gasPerEval)],
+      ['Cost C (area × depth³)', beforeCost ? fmtNum(beforeCost.fabx.withBuffers.C) : '—', fmtNum(afterCost.fabx.withBuffers.C)],
+    ];
+    if (cref !== undefined) {
+      const q = Math.min(4, cref / afterCost.fabx.withBuffers.C);
+      rows.push(['q against reference ' + fmtNum(cref), '—', q.toFixed(2) + '×']);
+    }
+
+    out.innerHTML = `
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px">
+        <span style="font-size:14px;color:${verified ? '#0D0F11' : '#E8EAEC'};background:${verified ? '#6FCF97' : '#b00020'};border-radius:6px;padding:4px 10px;font-weight:500">
+          ${verified ? `Equivalent · ${verifyMethod}` : `NOT equivalent (${verifyMethod})`}
+        </span>
+      </div>
+      <div style="overflow-x:auto"><div style="min-width:420px">
+        <div style="display:grid;grid-template-columns:minmax(150px,1.5fr) 1fr 1fr;gap:12px;padding:0 0 10px;font-size:13px;color:#8D969E;border-bottom:1px solid #262B31">
+          <span>Measure</span><span style="text-align:right">Before</span><span style="text-align:right">After</span>
+        </div>
+        ${rows.map(([l, b, a]) => resultRow(String(l), b as any, a as any, true)).join('')}
+      </div></div>
+      <div style="border-top:1px solid #262B31;margin-top:16px;padding-top:16px;font-size:14px;color:#8D969E;word-break:break-all">
+        netlist (nIn=${nIn}, nOut=${result.netlist.nOut}): <span class="mono" style="color:#E8EAEC">${hex}</span>
+      </div>`;
     ($('dl') as HTMLButtonElement).disabled = false;
   } catch (e: any) {
-    out.innerHTML = `<pre class="err">${String(e?.message ?? e)}</pre>`;
+    out.innerHTML = `<div style="color:#E07878">${String(e?.message ?? e)}</div>`;
     ($('dl') as HTMLButtonElement).disabled = true;
   }
 });
@@ -101,30 +138,86 @@ $('dl').addEventListener('click', () => {
   a.click();
 });
 
-// Gallery (static, precomputed by packages/core/scripts/dump_gallery.ts from the real replay).
-function copyBtn(text: string): HTMLButtonElement {
+// Verified-improvements list: real data from gallery.json (22 real FabX-replay beats,
+// packages/core/scripts/dump_gallery.ts), with a block-explorer-style rows-per-page control.
+type GalleryRow = {
+  id: number; name: string; nIn: number; nOut: number; Cref: number; C: number; q: number;
+  netlistHex: string; calldata: string;
+};
+const galleryRows = gallery as GalleryRow[];
+const PAGE_SIZES = [10, 20, galleryRows.length]; // galleryRows.length acts as "All" (22)
+let pageSize = 10;
+
+function copyBtn(text: string, label: string): HTMLButtonElement {
   const b = document.createElement('button');
-  b.textContent = 'copy';
-  b.onclick = () => navigator.clipboard.writeText(text);
+  b.className = 'btn btn-small';
+  b.textContent = label;
+  b.onclick = () => {
+    navigator.clipboard.writeText(text);
+    const prev = b.textContent;
+    b.textContent = 'copied';
+    setTimeout(() => { b.textContent = prev; }, 1200);
+  };
   return b;
 }
-const tbody = document.querySelector('#gallery tbody')!;
-for (const row of gallery as any[]) {
-  const tr = document.createElement('tr');
-  const hexCell = document.createElement('td');
-  hexCell.innerHTML = `<code class="hex">${row.netlistHex}</code>`;
-  hexCell.appendChild(copyBtn(row.netlistHex));
-  const cdCell = document.createElement('td');
-  cdCell.innerHTML = `<code class="hex">${row.calldata}</code>`;
-  cdCell.appendChild(copyBtn(row.calldata));
-  tr.innerHTML = `<td>${row.id} <span class="badge">${row.name}</span></td><td>${row.nIn}/${row.nOut}</td><td>${row.Cref}</td><td>${row.C}</td><td>${row.q}×</td>`;
-  tr.appendChild(hexCell);
-  tr.appendChild(cdCell);
-  tbody.appendChild(tr);
+
+function renderPager() {
+  const el = $('pager');
+  el.innerHTML = '';
+  for (const size of PAGE_SIZES) {
+    const on = pageSize === size;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = size === galleryRows.length ? `All · ${size}` : String(size);
+    btn.style.cssText = `min-height:44px;padding:0 18px;border:1px solid ${on ? '#E0904F' : '#3A4149'};border-radius:8px;background:${on ? 'rgba(224,144,79,0.14)' : 'transparent'};color:${on ? '#F2B07A' : '#E8EAEC'};font-size:15px;font-weight:500;cursor:pointer;font-family:inherit`;
+    btn.onclick = () => { pageSize = size; renderGallery(); };
+    el.appendChild(btn);
+  }
 }
+
+function renderGallery() {
+  const container = $('gallery');
+  container.innerHTML = '';
+  const visible = galleryRows.slice(0, pageSize);
+  for (const row of visible) {
+    const qPct = Math.min(100, (row.q / 4) * 100);
+    const item = document.createElement('div');
+    item.style.cssText = 'display:grid;grid-template-columns:minmax(220px,2fr) 90px 110px 110px minmax(160px,1.4fr) auto;gap:16px;padding:16px 24px;align-items:center;border-bottom:1px solid #20252A';
+    item.innerHTML = `
+      <div style="min-width:0">
+        <div class="mono dim" style="font-size:13px">GC-${String(row.id).padStart(3, '0')}</div>
+        <div style="font-weight:500">${row.name}</div>
+      </div>
+      <span class="mono muted" style="font-size:14px">${row.nIn}/${row.nOut}</span>
+      <span class="mono muted" style="text-align:right;font-size:14px">${fmtNum(row.Cref)}</span>
+      <span class="mono" style="text-align:right;font-size:14px">${fmtNum(row.C)}</span>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="flex:1;height:8px;border-radius:4px;background:#262B31"><div style="width:${qPct.toFixed(1)}%;height:8px;border-radius:4px;background:#E0904F"></div></div>
+        <span class="mono" style="font-size:14px;font-weight:500;min-width:56px;text-align:right;color:#E0904F">${row.q.toFixed(2)}×</span>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end"></div>`;
+    const btnCell = item.lastElementChild as HTMLElement;
+    btnCell.appendChild(copyBtn(row.netlistHex, 'Netlist'));
+    btnCell.appendChild(copyBtn(row.calldata, 'Calldata'));
+    container.appendChild(item);
+  }
+}
+
+$('verified-intro').textContent =
+  '46 of the 100 FabX tasks have a complete, checkable spec. On those, Forgeout beats the reference cost on 22, ties 11, and trails on 13. Each result below was re-checked by a separate from-scratch tool with no shared code.';
+renderPager();
+renderGallery();
 
 // Registry — not deployed anywhere real yet (Phase 2 only verified ForgeRegistry on a fork).
 const REGISTRY_ADDRESS: string | null = null;
-$('registry').innerHTML = REGISTRY_ADDRESS
-  ? `<p>Registry at <code>${REGISTRY_ADDRESS}</code> — live lookup not yet wired up.</p>`
-  : '<p class="muted">Not deployed. ForgeRegistry.sol is built and ABI-verified on an X Layer fork (see docs/GAS-VERIFY.md) but has not been deployed to the real chain. See docs/USER-STEPS.md for the deployment checklist.</p>';
+$('registry-panel').innerHTML = REGISTRY_ADDRESS
+  ? `<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px"><div style="font-size:18px;font-weight:600">Best-circuit lookup</div></div>
+     <p>Registry at <span class="mono">${REGISTRY_ADDRESS}</span> — live lookup not yet wired up.</p>`
+  : `<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px">
+       <div style="font-size:18px;font-weight:600">Best-circuit lookup</div>
+       <span class="badge">Not deployed yet</span>
+     </div>
+     <p class="muted" style="margin:0 0 18px">An ownerless contract keeps the best verified circuit for each function. Anyone can replace it with a strictly better one. For up to six inputs the contract proves equivalence itself by calling the circuit on every row.</p>
+     <label for="spec">Spec hash</label>
+     <input id="spec" type="text" disabled placeholder="0x…" class="mono" style="width:100%;background:#101315;color:#8D969E;border-color:#262B31">
+     <p class="dim" style="margin:18px 0 0;font-size:14px">Lookup switches on after deployment. The contract is built and tested against an X Layer fork (<code>docs/GAS-VERIFY.md</code>).</p>`;

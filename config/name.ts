@@ -1,2 +1,2 @@
 // Single place to change the product's working name.
-export const PRODUCT_NAME = "TapeOut Forge";
+export const PRODUCT_NAME = "Forgeout";

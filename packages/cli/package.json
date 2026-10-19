@@ -1,5 +1,5 @@
 {
-  "name": "@tapeout-forge/cli",
+  "name": "@forgeout/cli",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -7,9 +7,9 @@
     "forge": "src/index.ts"
   },
   "dependencies": {
-    "@tapeout-forge/core": "workspace:*",
-    "@tapeout-forge/chain": "workspace:*",
-    "@tapeout-forge/silicon": "workspace:*"
+    "@forgeout/core": "workspace:*",
+    "@forgeout/chain": "workspace:*",
+    "@forgeout/silicon": "workspace:*"
   },
   "scripts": {
     "test": "vitest run"

@@ -1,5 +1,5 @@
-import type { Netlist } from "@tapeout-forge/core";
-import { evalCombinational, parse as parseNetlist } from "@tapeout-forge/core";
+import type { Netlist } from "@forgeout/core";
+import { evalCombinational, parse as parseNetlist } from "@forgeout/core";
 import { keccak256 } from "js-sha3";
 
 export interface RpcError {
@@ -114,7 +114,7 @@ export async function getCircuitInfo(rpcUrl: string, processor: string, id: bigi
  * netlist(uint256) -> bytes (the raw TAP-02 gate stream). VERIFIED (Phase
  * 1b): selector 3fc4be56 = keccak256("netlist(uint256)"), confirmed the
  * same way as circuitInfo above - decoded bytes round-trip exactly through
- * @tapeout-forge/core's parse() (topological-order/future-signal validation
+ * @forgeout/core's parse() (topological-order/future-signal validation
  * passes) for every id tested. This is the ACTUAL on-chain reference
  * netlist, not a reconstruction.
  */

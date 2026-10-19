@@ -1,5 +1,5 @@
 {
-  "name": "@tapeout-forge/web",
+  "name": "@forgeout/web",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -9,7 +9,7 @@
     "test": "echo \"no unit tests for apps/web (pure UI over packages/core, which is unit-tested) - build is the smoke test\" && vite build"
   },
   "dependencies": {
-    "@tapeout-forge/core": "workspace:*"
+    "@forgeout/core": "workspace:*"
   },
   "devDependencies": {
     "vite": "^5.4.11"

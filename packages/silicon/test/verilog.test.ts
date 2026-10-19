@@ -3,7 +3,7 @@ import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { Netlist, parse, exhaustiveTruthTable } from "@tapeout-forge/core";
+import { Netlist, parse, exhaustiveTruthTable } from "@forgeout/core";
 import { toStructuralVerilog, toTtskyWrapper, checkExportable, REQUIRED_SILICON_WORDING } from "../src/index.js";
 
 /** Runs the generated structural Verilog through real iverilog, exhaustively, and compares bit-for-bit against our TS simulator's truth table. Fails loudly (throws) on any mismatch or if iverilog itself errors. */

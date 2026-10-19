@@ -13,12 +13,12 @@ import {
   checkEquivalence,
   type Netlist,
   type Objective,
-} from "@tapeout-forge/core";
+} from "@forgeout/core";
 import { exprToRows } from "./expr.js";
 import { X_LAYER_COST } from "../../../config/cost.js";
 import { X_LAYER } from "../../../config/chains.js";
-import { verifyOnchain } from "@tapeout-forge/chain";
-import { toTtskyWrapper, REQUIRED_SILICON_WORDING } from "@tapeout-forge/silicon";
+import { verifyOnchain } from "@forgeout/chain";
+import { toTtskyWrapper, REQUIRED_SILICON_WORDING } from "@forgeout/silicon";
 
 interface Args {
   file?: string;

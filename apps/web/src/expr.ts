@@ -1,5 +1,5 @@
 // Ported from packages/cli/src/expr.ts (same tiny self-contained logic, duplicated here so
-// apps/web stays a pure static bundle with no dependency on @tapeout-forge/cli's Node-oriented
+// apps/web stays a pure static bundle with no dependency on @forgeout/cli's Node-oriented
 // package). Variables are lowercase letters; operators & | ^ ! ().
 export function parseExprVars(expr: string): string[] {
   const vars = new Set<string>();

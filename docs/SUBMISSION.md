@@ -7,7 +7,7 @@ features used.
 
 ## Product
 
-TapeOut Forge: a compiler/optimizer/equivalence-checker for TapeOut circuits on X Layer. Given a
+Forgeout: a compiler/optimizer/equivalence-checker for TapeOut circuits on X Layer. Given a
 boolean spec, an existing netlist, or a FabX task reference, it returns the cheapest or
 shallowest provably-equivalent NAND/LATCH circuit with an independently-verified equivalence
 proof, and can register the result on-chain or build a (dry-run) tape-out submission. It is

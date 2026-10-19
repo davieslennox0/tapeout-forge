@@ -69,6 +69,6 @@ completes on Tiny Tapeout. We do not claim a physical chip exists." (docs/SILICO
 
 ## 2:50-3:00 - Close
 
-Say: "TapeOut Forge: infrastructure, not an app. The headline number is real, independently
+Say: "Forgeout: infrastructure, not an app. The headline number is real, independently
 re-checked, and the honest gaps - no proven synthesis above 3 inputs, FabX's reward formula still
 has undefined terms - are documented, not hidden. Repo: github.com/davieslennox0/tapeout-forge."
