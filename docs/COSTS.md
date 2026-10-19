@@ -1,3 +1,79 @@
+# Real costs (CURRENT: OrderGuard, Phase 7 retarget — supersedes the FAB_TST re-pricing below and docs/TAPEOUT-DRYRUN.md)
+
+Phase 6 found FAB_TST's transistor supply exhausted with no acquisition route
+(docs/ACQUIRE-AND-CLAIM.md). Phase 7 retargets go-live to OrderGuard
+(`0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`), which has real transistor-supply headroom.
+This is now the authoritative cost table for the hackathon go-live plan.
+
+## Real fee parameters (fresh eth_call, 2026-10-19)
+
+- OrderGuard `name()` = "OrderGuard" (live, not copied from any doc).
+- Transistor contract `0x8e71FC45ff47E5a7bA1ad2960793ebAdD2739D9e`:
+  `supplyCap()`=10,000, `minted()`=42 (re-verified, unchanged from earlier measurements),
+  `mintPrice()`=100,000,000,000,000 wei=**0.0001 OKB**, `protocolFee()`=660,000,000,000,000
+  wei=**0.00066 OKB**.
+- `TAPEOUT_FEE()`=1,300,000,000,000,000 wei=**0.0013 OKB**.
+
+## Final circuit list (all re-confirmed strictly better than reference, gallery.full.json)
+
+| task | nIn/nOut | gates (incl. buffers) | depth* | Cref | C | q |
+|---|---|---|---|---|---|---|
+| GC-012 | 4/4 | 56 | 8 | 496,000 | 28,672 | 4.000 |
+| GC-037 | 4/4 | 36 | 9 | 63,936 | 26,244 | 2.436 |
+| GC-050 | 4/8 | 46 | 7 | 43,000 | 15,778 | 2.725 |
+| GC-039 | 6/6 | 119 | 12 | 576,000 | 205,632 | 2.801 |
+| GC-046 | 8/4 | 92 | 10 | 367,416 | 92,000 | 3.994 |
+
+\*depth derived from the already-verified C=gates×depth³ formula (all five are exact integer
+cube roots of C/gates) — not independently re-measured this session; gallery.full.json has no
+depth field, so this is the correct value to pass to ForgeRegistry.submit(), not 0 (see the
+fork-test note below).
+
+## Real fee totals (OrderGuard)
+
+| task | mint (gates×0.0001+0.00066) | tapeout fee | **total OKB** |
+|---|---|---|---|
+| GC-012 | 0.00626 | 0.0013 | **0.00756** |
+| GC-037 | 0.00426 | 0.0013 | **0.00556** |
+| GC-050 | 0.00526 | 0.0013 | **0.00656** |
+| GC-039 | 0.01256 | 0.0013 | **0.01386** |
+| GC-046 | 0.00986 | 0.0013 | **0.01116** |
+| **sum (5)** | | | **0.0447** |
+
+Transistors needed: 56+36+46+119+92 = **349**. Real supply headroom: 10,000 cap − 42 minted =
+9,958 available now; after minting 349 for these 5, 9,609 would remain. Well within range.
+
+## Real Anvil-fork test (2026-10-19, impersonated test address, never the real chain)
+
+Deployed a fresh ForgeRegistry on the fork (460,958 gas — matches the earlier Phase 5
+measurement exactly). For each circuit: mint → tapeout (real event-decoded circuit id) →
+register. All 5 succeeded end to end.
+
+| task | mint gas | tapeout gas | register gas | circuitId | onchainVerified |
+|---|---|---|---|---|---|
+| GC-012 | 86,399 | 377,599 | 2,358,024 | 6 | **true** |
+| GC-037 | 86,399 | 303,698 | 1,638,753 | 7 | **true** |
+| GC-050 | 86,399 | 332,175 | 2,022,060 | 8 | **true** |
+| GC-039 | 86,399 | 538,903 | 18,191,899 | 9 | **true** |
+| GC-046 | 86,399 | 462,442 | 119,099 | 10 | **false** (attestation path, by design — nIn=8 > MAX_ONCHAIN_VERIFY_INPUTS=6) |
+
+GC-039 (nIn=6) confirms the on-chain-verify path works at the real n=6 boundary, not just small
+n. GC-046 correctly falls through to the attestation-only path exactly as
+`contracts/src/ForgeRegistry.sol` designs it — `registry.best(specHash).onchainVerified` reads
+`false`, storage otherwise populated normally. `registry.best()`'s real field order (confirmed
+from source, not guessed): `(address processor, uint256 circuitId, uint32 gates, uint32 depth,
+uint8 nIn, uint8 nOut, bool onchainVerified, bytes32 proofHash, address submitter)` — this
+fork test passed `depth=0` (a gap in the test driver, not a contract defect); use the real
+derived depth values in the table above for any real submission.
+
+**One fork-test mistake caught and fixed before trusting any result**: the first attempt to
+deploy ForgeRegistry used a broken `forge inspect` invocation that silently produced empty
+bytecode; the resulting "deployment" and all 5 register calls against it looked like they
+succeeded (status 1) but were against a contract with zero code. Caught by checking
+`eth_getCode` before trusting any gas number, redone properly with `forge create`.
+
+---
+
 # Real costs (CONFIRMED processor, FAB_TST — supersedes docs/TAPEOUT-DRYRUN.md)
 
 Priced against the real, CONFIRMED FabX PoD processor `0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6`
