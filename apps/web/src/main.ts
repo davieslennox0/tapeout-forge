@@ -142,7 +142,7 @@ $('dl').addEventListener('click', () => {
 // packages/core/scripts/dump_gallery.ts), with a block-explorer-style rows-per-page control.
 type GalleryRow = {
   id: number; name: string; nIn: number; nOut: number; Cref: number; C: number; q: number;
-  netlistHex: string; calldata: string;
+  netlistHex?: string; calldata?: string; // absent when built with REVEAL_NETLISTS=false
 };
 const galleryRows = gallery as GalleryRow[];
 const PAGE_SIZES = [10, 20, galleryRows.length]; // galleryRows.length acts as "All" (22)
@@ -197,8 +197,16 @@ function renderGallery() {
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end"></div>`;
     const btnCell = item.lastElementChild as HTMLElement;
-    btnCell.appendChild(copyBtn(row.netlistHex, 'Netlist'));
-    btnCell.appendChild(copyBtn(row.calldata, 'Calldata'));
+    if (row.netlistHex && row.calldata) {
+      btnCell.appendChild(copyBtn(row.netlistHex, 'Netlist'));
+      btnCell.appendChild(copyBtn(row.calldata, 'Calldata'));
+    } else {
+      const span = document.createElement('span');
+      span.className = 'dim';
+      span.style.fontSize = '13px';
+      span.textContent = 'Published after tape-out';
+      btnCell.appendChild(span);
+    }
     container.appendChild(item);
   }
 }

@@ -4,9 +4,9 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "test": "echo \"no unit tests for apps/web (pure UI over packages/core, which is unit-tested) - build is the smoke test\" && vite build"
+    "dev": "node scripts/redact-gallery.mjs && vite",
+    "build": "node scripts/redact-gallery.mjs && vite build",
+    "test": "echo \"no unit tests for apps/web (pure UI over packages/core, which is unit-tested) - build is the smoke test\" && node scripts/redact-gallery.mjs && vite build"
   },
   "dependencies": {
     "@forgeout/core": "workspace:*"

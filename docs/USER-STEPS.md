@@ -83,6 +83,27 @@ it on a host you intend to actually serve from. It `--delete`s the target webroo
 each run (rsync mirrors the build output exactly), so don't point `<webroot>` at a directory
 with anything else in it.
 
+## 4b. REVEAL_NETLISTS: netlist/calldata are hidden from the public build by default
+
+apps/web/src/data/gallery.full.json holds the real netlist hex + calldata for all 22 beats;
+apps/web/src/data/gallery.json (gitignored, regenerated every build by
+apps/web/scripts/redact-gallery.mjs) is what actually ships. Default build
+(REVEAL_NETLISTS unset or anything but "true") strips netlistHex/calldata entirely before
+Vite even sees them - verified by grepping the real built dist/ output for the actual hex
+strings of two real circuits (GC-012, GC-046): zero matches either field. The gallery still
+shows task/name/in-out/reference-C/our-C/q; the copy buttons are replaced with "Published
+after tape-out".
+
+To reveal them (only do this AFTER a circuit is actually taped out, so publishing the netlist
+can no longer let someone else front-run submitting it first):
+```
+REVEAL_NETLISTS=true pnpm --filter @forgeout/web build
+scripts/deploy-web.sh forge.fanside.xyz /var/www/forge /etc/caddy/Caddyfile
+```
+**What could go wrong**: forgetting REVEAL_NETLISTS=true on a later rebuild silently
+re-redacts a previously-revealed site (the flag is not persisted anywhere, it is read fresh at
+each build) - if you deploy a revealed version, note it down so you do not accidentally revert.
+
 ## 5. Make the repo public
 
 ```
