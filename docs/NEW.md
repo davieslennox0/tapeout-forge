@@ -109,3 +109,47 @@ n=4 exact library NOT built: per-class SAT too slow (75/3984 classes in 16 min, 
   was intentionally not restored). Backup taken before editing, config validated before reload,
   DNS resolution checked before reload. Repeatable via `scripts/deploy-web.sh <domain> <webroot>
   [caddyfile]`, which takes the host as a parameter and contains no secrets.
+
+- 2026-10-19: Phase 4 complete (silicon export, stretch; status never exceeds "exported" -
+  no ordering/payment/submission anywhere, throughout).
+  4.0 Re-verified the earlier feasibility spike directly (not trusted from memory): the overall
+  GitHub Actions workflow on github.com/davieslennox0/maj3-silicon-spike shows "failure", but
+  broken down by job this is misleading - the actual `gds` and `precheck` jobs both PASS (real
+  downloaded precheck_reports artifact: 15/15 checks green); only two unrelated jobs fail
+  (`viewer`: GitHub Pages not enabled on that repo; `gl_test`: no cocotb testbench provided).
+  Confirmed this on both the MAJ3 run and the LATCH run. Also checked tinytapeout.com/runs for
+  real (2026-10-18): open shuttles are TTGF26d/TTGF26c (close 2026-12-07) and TTSKY26d (close
+  2026-11-30).
+  4.1-4.3 packages/silicon: netlist -> structural Verilog -> ttsky wrapper. REF is refused
+  (unflattenable - no REF-flattening implemented). LATCH is refused with a documented reason
+  that is itself a real finding: BUILD.md 4.2's literal "always_latch" instruction conflicts
+  with the now-VERIFIED real LATCH semantics (latch-reconcile: unconditional update every tick,
+  no enable signal, register/flip-flop timing not a gated level-sensitive latch) - flagged per
+  BUILD.md section-0 rule 9 rather than guessed around. Real iverilog equivalence testing (not
+  simulated-in-TS-only) for the 6-NAND MAJ3 and two real FabX beats (task 7, task 12) - all
+  match exactly across every input row. Caught and fixed a real bug in the test harness itself
+  along the way (an unnecessary bit-reversal that happened to be invisible for 1-output circuits
+  and only showed up on task 12's 4-output case). 4 refusal-reason tests (REF/LATCH/oversize/
+  pins), all real, all pass. 8/8 silicon package tests, 58/58 total across the monorepo.
+  4.4 `forge export-silicon <task-id|netlist-hex>`: writes a local repo directory (src/,
+  info.yaml, README with the limitation wording) and never shells out to git/gh itself
+  (confirmed by direct code inspection, not just by description). The first version's info.yaml
+  was missing required fields (discord/clock_hz/tiles/the full 8-entry pinout map/yaml_version) -
+  caught by actually attempting a real push (4.5) and comparing against the spike repo's own
+  working info.yaml, then fixed and re-verified, not guessed from the spec alone.
+  4.5 Real push, real CI run: task 12 (GC-012, the headline q=4.0 FabX beat) exported and pushed
+  to github.com/davieslennox0/maj3-silicon-spike (owned repo, same safe pattern as the earlier
+  spike). Run https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/39150702389:
+  `gds` and `precheck` jobs both passed for real, 34 cells / 173.9168 um^2, GDS sha256
+  `1857e6b1325f19d65bd4647d9ca18c166d2c0ea3dc88464a21ad59729eadf256` (downloaded and hashed
+  directly, not copied from a log). This is a second real circuit through the real pipeline,
+  not a re-report of the first.
+  4.6 apps/web: added a real "Silicon path" section with this real data (task, status, cell
+  count, area, GDS hash, run link) - no fake/placeholder entries, since 4.5 genuinely went
+  green. Web build still clean (117KB JS unchanged, index.html +1.5KB), all tests still pass.
+  4.7 docs/SILICON.md written (full claim/non-claim statement, the LATCH-refusal spec conflict
+  explained, the real 4.5 result, the real checked-today shuttle list). README/SUBMISSION/DEMO
+  updated with the real result and the exact required wording verbatim. This entry.
+
+  Outside this phase's scope, noticed in passing and left untouched: a branch named
+  `forgeout-rebrand` appeared on origin mid-phase from a source other than this work.

@@ -60,6 +60,13 @@ ABI, real fees, verified live on a fork. It never sends anything. Actually tappi
 a deliberate manual step for the project owner, with their own key - that checklist is in
 docs/USER-STEPS.md, and it's not done yet. We'd rather say that than fake a submission."
 
+Optional, if time remains: "We went one step further for one circuit - `forge export-silicon`
+generated a real Tiny Tapeout repo, and we ran Tiny Tapeout's own CI on it for real. Synthesis
+and DRC both passed, 15 out of 15 checks, producing a real 34-cell GDS. Tapeout-ready export.
+We have not ordered fabrication. Ordering is a separate paid step that the circuit owner
+completes on Tiny Tapeout. We do not claim a physical chip exists." (docs/SILICON.md, run
+39150702389 on github.com/davieslennox0/maj3-silicon-spike)
+
 ## 2:50-3:00 - Close
 
 Say: "TapeOut Forge: infrastructure, not an app. The headline number is real, independently

@@ -104,13 +104,24 @@ transaction, which Phase 3's rules forbid ("never spend"). Per BUILD.md section 
 integration is explicitly optional for the hackathon submission. See docs/USER-STEPS.md for the
 checklist to actually do it with your own key.
 
-## Silicon export (stretch goal, not part of Phases 0-2)
+## Silicon export (BUILD.md Phase 4, stretch)
 
-A feasibility spike (github.com/davieslennox0/maj3-silicon-spike) confirmed a TapeOut NAND/LATCH
-netlist can be mechanically mapped to a real, DRC-clean Sky130 GDS via TinyTapeout's own CI.
+`forge export-silicon <task|netlist-hex>` turns a flat combinational TAP-02 netlist into real
+structural Verilog, wrapped in the Tiny Tapeout `ttsky` top-module shape, written to a local
+repo directory. It never pushes, submits, or pays for anything itself - see docs/SILICON.md for
+exactly what is and is not claimed (including why LATCH export is refused, a real spec conflict
+found while building this, not a missing feature).
+
+One real circuit has been taken all the way through the actual CI pipeline: task 12 (GC-012,
+the headline q=4.0 FabX beat), pushed to github.com/davieslennox0/maj3-silicon-spike (a repo
+this account owns) and run for real on GitHub Actions - synthesis and DRC both passed (15/15
+Tiny Tapeout precheck checks), producing a real 34-cell GDS
+(run: https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/39150702389). This is in
+addition to the earlier feasibility spike (the 6-NAND MAJ3).
+
 **Tapeout-ready export. We have not ordered fabrication. Ordering is a separate paid step that
 the circuit owner completes on Tiny Tapeout. We do not claim a physical chip exists.** See
-docs/LIMITS.md.
+docs/SILICON.md and docs/LIMITS.md.
 
 ## Docs
 

@@ -51,6 +51,12 @@ keeps coming back as the task bank and the field of competing circuits change ov
   constraints so it could be published later without changes.
 - ForgeRegistry (contracts/ForgeRegistry.sol): built, ABI-verified against the real processor,
   tested on a live X Layer fork - not yet deployed to the real chain (see TODO below).
+- Silicon export (docs/SILICON.md): `forge export-silicon` generates a real Tiny Tapeout
+  `ttsky`-shaped repo directory from a netlist. One real circuit (task 12, GC-012) has been run
+  all the way through Tiny Tapeout's own GitHub Actions CI for real - synthesis and DRC both
+  passed (15/15 precheck checks), producing a real 34-cell GDS. Status never exceeds "exported" -
+  no ordering, no payment, no shuttle submission. See docs/SILICON.md for the exact wording and
+  limits.
 
 ## Addresses
 
@@ -63,6 +69,10 @@ keeps coming back as the task bank and the field of competing circuits change ov
   Real, independently-verified calldata already exists for all 22 (apps/web's gallery / the
   `forge calldata` CLI command); actually submitting them is docs/USER-STEPS.md step 2, which
   mints the resulting circuit IDs to fill in here.
+- Silicon export GitHub Actions run (task 12, GC-012):
+  https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/39150702389 - real synthesis
+  + DRC pass, GDS sha256 `1857e6b1325f19d65bd4647d9ca18c166d2c0ea3dc88464a21ad59729eadf256`.
+  Status: exported only - not submitted to Tiny Tapeout, not fabricated, not paid for.
 
 ## Access link
 
