@@ -1,17 +1,16 @@
 # Go-live: exact commands, in order, for the real owner
 
 Nothing in this repo has sent anything for real. Every command below needs the owner's own
-key and money. Read docs/COSTS.md and docs/CLAIM-PATH.md first.
+key and money. Read docs/COSTS.md first.
 
-## 0. REAL BLOCKER — read this before anything else
+## 0. PHASE 7: targets OrderGuard, not FAB_TST
 
-FAB_TST's transistor supply is **exhausted right now** (`supplyCap()==minted()==1,000,000`,
-see docs/COSTS.md). A brand-new wallet (step 1 below) cannot mint any transistors — `mint()`
-will revert `"supply cap"` for anyone. **Step 5 (tape out) cannot proceed for real until this
-changes** — either FabX raises the cap, or the owner acquires already-minted transistors from
-an existing holder some other way (not scripted here; this project found no mechanism for
-that). Steps 1-4 below (wallet, funding, registry deployment) are NOT blocked by this and can
-proceed regardless.
+FAB_TST's transistor supply was found exhausted with no acquisition route
+(docs/ACQUIRE-AND-CLAIM.md) — that path is set aside. This plan now targets **OrderGuard**
+(`0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`), which has real transistor-supply headroom
+(9,958 of 10,000 available, 349 needed for the 5 circuits below — see docs/COSTS.md). This
+plan does NOT pursue real FabX PoD mining rewards — it satisfies the hackathon's own
+requirements (a real on-chain tape-out + registry entry), which is a separate goal.
 
 ## 1. Create a new wallet
 
@@ -29,10 +28,10 @@ plain EOA.
 
 ## 2. Fund it
 
-Real total needed for all 5 planned beats (GC-012/046/045/043/044): **0.2633 OKB**
-(docs/COSTS.md). Send at least that much, ideally the full spend cap (**0.31596 OKB**) to
-leave margin for gas-price movement. Get the address: `cast wallet address --account
-my-forgeout-key`.
+Real total needed for all 5 final beats (GC-012/037/050/039/046): **0.0447 OKB**
+(docs/COSTS.md). Send at least that much, ideally the spend cap with a 20% margin
+(**0.05364 OKB**) to leave room for gas-price movement. Get the address: `cast wallet address
+--account my-forgeout-key`.
 
 **What could go wrong**: sending exactly the minimum leaves no room for real gas-price
 volatility between dry-run and broadcast — fund the cap amount, not the bare total.
@@ -51,35 +50,34 @@ Confirms real balance/nonce before spending anything.
 KEYSTORE_ACCOUNT=my-forgeout-key scripts/deploy-registry.sh          # dry run first
 KEYSTORE_ACCOUNT=my-forgeout-key scripts/deploy-registry.sh --broadcast
 ```
-Real measured cost on a fork: **460,958 gas** (first real measurement in this project — prior
-docs only had on-chain *verify-call* gas, not deployment gas). At a typical ~0.02-0.03 Gwei
-real gas price on X Layer this is a small fraction of an OKB, but check the script's own
-printed estimate at the time, not this number, since gas price moves.
+Real measured cost: **460,958 gas** (measured twice now, identical both times — Phase 5's
+fork test and Phase 7's). At a typical real X Layer gas price this is a small fraction of an
+OKB, but check the script's own printed estimate at the time, not this number, since gas price
+moves.
 
 **What could go wrong**: the script will not auto-record the deployed address — copy it into
-`config/chains.ts` and `docs/SUBMISSION.md`'s Addresses section yourself, immediately, so a
-later step doesn't target a stale/missing registry.
+`config/chains.ts` and `docs/SUBMISSION.md`'s Addresses section yourself, immediately.
 
-## 5. Tape out each circuit, IN THIS ORDER: GC-012, then 046, 045, 043, 044
+## 5. Tape out each circuit, IN THIS ORDER: GC-012, then 037, 050, 039, 046
 
 ```
 export FORGE_REGISTRY_ADDRESS=<from step 4>
 KEYSTORE_ACCOUNT=my-forgeout-key scripts/tapeout.sh 12           # dry run first
 KEYSTORE_ACCOUNT=my-forgeout-key scripts/tapeout.sh 12 --broadcast
 ```
-Repeat per task. Each run: confirms the processor's real `name()` live before spending,
-prints the real fee math, asks for a typed confirmation (exact OKB / processor address / chain
-id), mints transistors (blocked by step 0 above until the real supply cap changes), tapes out,
-and **auto-parses the real circuit id from the receipt's event** (confirmed working against 2
-real fork tests this session) — appends it to `docs/TAPEOUTS.md` itself.
+Repeat per task (37, 50, 39, 46). Each run: confirms OrderGuard's real `name()` and that it has
+real code, live, before spending; prints the real fee math; asks for a typed confirmation
+(exact OKB / processor address / chain id); mints transistors; tapes out; and auto-parses the
+real circuit id from the receipt's event (confirmed working against OrderGuard in a real Phase
+7 fork test covering all 5 of these exact circuits) — appends it to `docs/TAPEOUTS.md` itself.
 
-Order matters only in that GC-012 is this project's strongest result (q=4.0, the scoring cap)
-— tape it out first so the best evidence is on-chain soonest if time/budget runs out partway.
+GC-012 is this project's strongest result (q=4.0, the scoring cap) — tape it out first so the
+best evidence is on-chain soonest if time/budget runs out partway. GC-039 (nIn=6) is the
+largest/most expensive to register (real fork-measured register gas: 18,191,899 — budget real
+time/gas for it, it's an order of magnitude more than the others).
 
-**What could go wrong**: besides step 0's blocker, the real transistor supply cap could also
-get raised then re-exhausted by other teams between your dry-run and your broadcast — re-run
-`scripts/check-wallet.sh` style supply check right before broadcasting each one, not just once
-at the start.
+**What could go wrong**: re-run `scripts/check-wallet.sh` right before each broadcast, not
+just once at the start — supply/price can move between runs.
 
 ## 6. Register each taped-out circuit
 
@@ -87,9 +85,12 @@ at the start.
 KEYSTORE_ACCOUNT=my-forgeout-key scripts/register.sh 12 <circuit-id-from-docs/TAPEOUTS.md>
 KEYSTORE_ACCOUNT=my-forgeout-key scripts/register.sh 12 <circuit-id> --broadcast
 ```
-For nIn<=6 (GC-012 qualifies), this fetches real `eval()` outputs and lets the registry verify
-on-chain itself (real-tested: gas 2,358,048, `verified=true`). For nIn>6 tasks, it uses the
-attestation-only path automatically.
+For nIn<=6 (GC-012/037/050/039 all qualify), this fetches real `eval()` outputs and lets the
+registry verify on-chain itself (real-tested against OrderGuard for all four:
+`onchainVerified=true`). For GC-046 (nIn=8 > 6), it uses the attestation-only path
+automatically (real-tested: `onchainVerified=false`, by design, not a bug — see
+`contracts/src/ForgeRegistry.sol`'s `MAX_ONCHAIN_VERIFY_INPUTS`). Pass the real depth values
+from docs/COSTS.md's table (8, 9, 7, 12, 10 respectively) — don't let them default to 0.
 
 **What could go wrong**: if someone else registers a strictly-better circuit for the same
 specHash between your tape-out and your register call, your submission reverts

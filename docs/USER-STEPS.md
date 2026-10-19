@@ -22,15 +22,18 @@ volatility on the day, not the limit. Record the deployed address immediately in
 
 ## 2. Tape out the chosen circuits
 
-Pick circuits from the 22 real beats (apps/web's gallery, or `forge replay`). For each, get the
-real calldata:
+Final list (Phase 7): GC-012, GC-037, GC-050, GC-039, GC-046 — all re-confirmed strictly
+better than reference. Get the real calldata:
 ```
 forge calldata <netlist.hex> --nin N --nout M
 ```
 This requires Foundry's `cast` on PATH and never sends anything itself - it only prints
-calldata. Real fees are in **docs/COSTS.md**, priced against the real CONFIRMED FabX PoD
-processor FAB_TST (`0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6`) - NOT docs/TAPEOUT-DRYRUN.md,
-which priced a different processor (OrderGuard) and is marked SUPERSEDED.
+calldata. Real fees are in **docs/COSTS.md**, now priced against **OrderGuard**
+(`0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`) - FAB_TST's own pricing (further down in the
+same doc) is kept for history but is SUPERSEDED: Phase 6 found FAB_TST's transistor supply
+exhausted with no acquisition route (docs/ACQUIRE-AND-CLAIM.md), so Phase 7 retargeted go-live
+to OrderGuard, which has real headroom. Total for all 5: 0.0447 OKB, 349 transistors (well
+within OrderGuard's 9,958 available).
 
 **What could go wrong**: the transistor-mint step was found to depend on your account having NO
 unusual on-chain code (docs/NEW.md's EIP-7702-delegation finding) - a plain funded EOA is fine,
@@ -39,11 +42,9 @@ mints successfully on a fork FIRST.
 
 **Transistor supply - two DIFFERENT contracts, don't mix the numbers up**: FAB_TST's own
 transistor contract (which is the SAME contract as the FAB-Genesis NFT, `0xBe6f...eb714`) has
-`supplyCap()==minted()==1,000,000` - **exhausted**, confirmed live. No one can mint a FAB_TST
-transistor today, full stop, regardless of wallet. OrderGuard has a SEPARATE transistor
-contract (`0x8e71...9D9e`) with cap 10,000 / 42 minted (plenty of headroom) - fine for
-OrderGuard tape-outs, irrelevant to FAB_TST. See docs/ACQUIRE-AND-CLAIM.md for the real
-acquisition options given this blocker, before assuming step 2 is even executable as written.
+`supplyCap()==minted()==1,000,000` - **exhausted**, confirmed live, and is NOT used by this
+plan. OrderGuard has its own SEPARATE transistor contract (`0x8e71...9D9e`) with cap 10,000 /
+42 minted (plenty of headroom) - this is the one scripts/tapeout.sh actually targets now.
 
 ## 3. Register the taped-out circuits in ForgeRegistry
 
