@@ -67,6 +67,23 @@ else
   bad "the grep contract between go-live.sh and verify-live.sh does not match - a real mismatch would NOT be caught"
 fi
 
+echo "== test 6: registry resume - a SECOND invocation with FORGE_REGISTRY_ADDRESS unset does NOT redeploy =="
+# Real stall this project actually hit: a prior real --broadcast run deployed ForgeRegistry for
+# real (tx 0xad495798672b4d9c7dc4b2bdce16b64c6795fb1fad89fac469f8be327c74cc66, status=1), but the
+# address only ever lived in that one shell's env var - a fresh invocation with it unset had no
+# way to know the registry already existed. Fixed by defaulting FORGE_REGISTRY_ADDRESS from the
+# real config/chains.ts value. This fork is forked from REAL current X Layer state, so it
+# genuinely inherits that real registry's code at that real address - this is not a fixture, the
+# fork IS the real chain's state as of when anvil started.
+unset FORGE_REGISTRY_ADDRESS
+OUT=$(FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/go-live.sh" my-forgeout-key --variant gc014 2>&1)
+echo "$OUT" | grep -q "SKIP (resumed): FORGE_REGISTRY_ADDRESS=0xAFDd108b0efCC1FF4d1e1d32579F80501774912d already has real code" \
+  && ok "defaults to the real deployed registry and skips redeploying, with FORGE_REGISTRY_ADDRESS left completely unset" \
+  || bad "did not resume correctly - would have attempted a redeploy"
+echo "$OUT" | grep -q "estimating real deployment gas" \
+  && bad "deploy-registry.sh was invoked anyway (should have been skipped entirely)" \
+  || ok "deploy-registry.sh was never invoked - confirmed skipped, not just silently fast"
+
 echo
 echo "== $PASS passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]
