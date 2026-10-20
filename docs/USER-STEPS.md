@@ -40,6 +40,12 @@ unusual on-chain code (docs/NEW.md's EIP-7702-delegation finding) - a plain fund
 but if your deploying key is itself a smart-contract wallet or has a delegation set, check it
 mints successfully on a fork FIRST.
 
+**PHASE 9**: don't run the steps below one at a time by hand unless you want to - the whole
+sequence (preflight → deploy-registry → {tapeout → register → verify-live} per circuit,
+spend-capped and resumable) is now orchestrated by `scripts/go-live.sh`. See
+**docs/GO-LIVE.md section 3** for the exact commands; this file's remaining numbered steps
+are the same underlying scripts, spelled out manually, for reference.
+
 **Transistor supply - two DIFFERENT contracts, don't mix the numbers up**: FAB_TST's own
 transistor contract (which is the SAME contract as the FAB-Genesis NFT, `0xBe6f...eb714`) has
 `supplyCap()==minted()==1,000,000` - **exhausted**, confirmed live, and is NOT used by this

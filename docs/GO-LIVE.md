@@ -43,7 +43,37 @@ Get the address: `cast wallet address --account my-forgeout-key`. Send the fundi
 **What could go wrong**: sending exactly the bare total leaves no room for real gas-price
 movement — fund the cap amount shown above, not the bare total.
 
-## 3. Preflight (STEP 0 — run this before every broadcast, not just once)
+## 3. (Recommended) Run the orchestrator instead of steps 3-9 by hand
+
+`scripts/go-live.sh` wraps preflight → deploy-registry → {tapeout → register → verify-live}
+for GC-012/037/050/014/046 in order, with the same per-step typed confirmation and a
+cumulative spend-cap check across the whole run (not just per-step). Dry-run by default:
+```
+scripts/go-live.sh my-forgeout-key --variant gc014        # pure dry-run, nothing sent, safe to run anytime
+scripts/go-live.sh my-forgeout-key --variant gc014 --broadcast
+```
+`--variant gc039` ADDS GC-039 at the end on top of the base 5 (it does not replace GC-014 -
+read the run's own printed NOTE if you use this flag). Resumable: re-running the same command
+after a partial run skips any circuit already recorded in `docs/TAPEOUTS.md` AND confirmed
+live in the registry - it never trusts the file alone. Aborts the whole run (not just that
+step) on: cumulative spend exceeding the cap, any step failing, or a `verify-live.sh`
+mismatch - it never auto-retries a failed broadcast. Real-tested: `scripts/test-go-live.sh`
+exercises this against a local Anvil fork (6/6 real assertions pass as of 2026-10-20),
+including the dry-run path's own real bug fix (`deploy-registry.sh` was calling a `--dry-run`
+flag that this Foundry version's `forge create` doesn't have at all - fixed to use
+`cast estimate --create`, which needs no signer for the estimate itself).
+
+**What could go wrong**: `cast wallet address --account my-forgeout-key` (used internally for
+the preflight step) needs your real keystore password, prompted interactively - run
+`go-live.sh` at a real terminal, not through any automation that can't answer that prompt. If
+you see "SKIP: could not decrypt keystore... non-interactively", that's this exact situation;
+run `scripts/preflight.sh <your-address> --variant <variant>` yourself first in that case and
+confirm ALL CHECKS PASS before trusting the rest of the dry-run's numbers.
+
+The manual step-by-step below (3b onward) is the same underlying scripts, spelled out, for
+when you want to run one circuit at a time by hand instead.
+
+## 3b. Preflight (run this before every broadcast, not just once)
 
 ```
 scripts/preflight.sh "$(cast wallet address --account my-forgeout-key)" --variant gc039

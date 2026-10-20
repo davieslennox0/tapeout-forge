@@ -29,17 +29,21 @@ else
   SIGNER_ARGS=(--keystore "$KEY_FILE")
 fi
 
-echo "== dry-run: estimating deployment gas on a real fork of chain $CHAIN_ID =="
+echo "== dry-run: estimating real deployment gas, read-only (no signer needed for this part) =="
+# PHASE 9 fix: this Foundry version's `forge create` has no --dry-run flag at all (confirmed
+# via `forge create --help` - it simply isn't a real option; the original script predates this
+# and was never actually exercised against the real CLI outside a fork-impersonation context).
+# `cast estimate --create <bytecode>` gives the same real number without needing to unlock any
+# keystore - it's a genuine eth_estimateGas-backed read, not a guess.
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/contracts"
-DEPLOY_OUT=$("$FORGE" create src/ForgeRegistry.sol:ForgeRegistry --rpc-url "$RPC" "${SIGNER_ARGS[@]}" --dry-run 2>&1) || true
-echo "$DEPLOY_OUT"
-GAS=$(echo "$DEPLOY_OUT" | grep -oE 'gas (used|estimate)[: ]+[0-9]+' | grep -oE '[0-9]+' | head -1 || echo "")
-if [ -n "$GAS" ]; then
+BYTECODE=$("$FORGE" inspect src/ForgeRegistry.sol:ForgeRegistry bytecode)
+GAS=$("$CAST" estimate --rpc-url "$RPC" --create "$BYTECODE" 2>&1) || true
+if [[ "$GAS" =~ ^[0-9]+$ ]]; then
   GAS_PRICE_WEI=$("$CAST" gas-price --rpc-url "$RPC")
-  COST_OKB=$(python3 -c "print($GAS * $GAS_PRICE_WEI / 1e18)")
+  COST_OKB=$(python3 -c "print(f'{$GAS * $GAS_PRICE_WEI / 1e18:.18f}'.rstrip('0').rstrip('.'))")
   echo "estimated gas: $GAS   real gas price: $GAS_PRICE_WEI wei   estimated cost: $COST_OKB OKB"
 else
-  echo "could not parse a gas estimate from forge's output above - read it manually before broadcasting."
+  echo "could not get a real gas estimate: $GAS"
 fi
 
 if [ "$BROADCAST" -eq 0 ]; then

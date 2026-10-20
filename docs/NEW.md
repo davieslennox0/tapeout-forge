@@ -197,3 +197,37 @@ n=4 exact library NOT built: per-class SAT too slow (75/3984 classes in 16 min, 
   8.5: docs/GO-LIVE.md rewritten as a single copy-paste runbook - every command has its
   expected output shape, the on-chain check to run after, and explicit "if it fails: STOP, do
   not retry blindly" guidance (a failed tape-out/register can still cost real gas).
+
+- 2026-10-20: PHASE 9 (go-live orchestration, prep only, agent never broadcasts).
+  1: preflight re-run against the real deployer address (0x1F4d4B97d9cFD57b2F5CED5b87249ECCa95920E5,
+  the user's actual deployment wallet, confirmed over the stale address BUILD.md's draft text
+  still had) - ALL CHECKS PASS, real balance 0.087 OKB >= 0.034285 needed. Secret scan re-run
+  clean (0 tracked key/env files, 0 real key-shaped strings in full history).
+  2: scripts/go-live.sh built - ordered orchestrator (preflight -> deploy-registry ->
+  {tapeout -> register -> verify-live} per circuit for GC-012/037/050/014/046, GC-039 ADDITIVE
+  under --variant gc039 per BUILD.md's literal Phase 9 text, not a replacement for GC-014 as
+  Phase 8's docs/COSTS.md framing implied - flagged explicitly in the script's own output so
+  nobody relies on a stale total). Cumulative spend-cap check across the whole run, resumable
+  via docs/TAPEOUTS.md cross-checked against live on-chain registry state (never the file
+  alone), never auto-retries a failed step, rejects --private-key outright.
+  3: real dry-run executed (not described) - cumulative real cost 0.034 OKB for the base 5
+  (gc014 variant) / 0.04786 OKB with GC-039 added, both under the 0.05462 cap. Found and fixed
+  a REAL bug along the way: scripts/deploy-registry.sh called `forge create --dry-run`, a flag
+  that does not exist in this Foundry version at all (confirmed via --help) - never actually
+  exercised against the real CLI before this phase. Fixed to `cast estimate --create
+  <bytecode>` (465,784 gas, matching the earlier 460,958 fork measurement closely) - genuinely
+  read-only, no signer needed. Also fixed a cosmetic-but-real formatting bug: the resulting
+  tiny OKB cost was rendering in Python scientific notation, which would have broken the exact
+  typed-confirmation match at real broadcast time.
+  4: scripts/finalize-release.sh built (dry-run/read-only unless --apply, never passed by the
+  agent) - correctly refuses since docs/TAPEOUTS.md has no real verified circuits yet; prints
+  but never runs the repo-visibility command; requires a clean secret scan before even
+  printing that command.
+  5: scripts/test-go-live.sh - 6 real assertions against a REAL ForgeRegistry deployment on a
+  local Anvil fork (impersonation only, never a real key): --private-key rejection, invalid
+  --variant rejection, resume-skip (a real on-chain-verified GC-012 entry is detected and
+  skipped, GC-037 still processes normally), spend-cap abort (an artificially tiny cap
+  correctly aborts the whole run), and the verify-live/go-live mismatch-abort string contract
+  (confirmed consistent by direct source inspection of both real files). All 6 pass. Full
+  existing suite (68 tests: 60 vitest + 8 real Foundry) still green after all changes.
+  docs/GO-LIVE.md and docs/USER-STEPS.md updated with the orchestrator as the recommended path.
