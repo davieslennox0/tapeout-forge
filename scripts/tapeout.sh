@@ -2,13 +2,22 @@
 # Tape out one of this project's own real netlists (by gallery.full.json id) against OrderGuard.
 # PHASE 7: retargeted from FAB_TST (transistor supply exhausted, no acquisition route - see
 # docs/ACQUIRE-AND-CLAIM.md) to OrderGuard, which has real transistor-supply headroom.
-# Mints transistors first if the caller's balance is short.
+# Mints transistors first if the caller's balance is short (and only the real shortfall, not
+# blindly the full amount - a real run found 36 transistors already sitting unused after a
+# prior partial failure; minting again would have wasted real OKB).
 # DRY-RUN by default (prints calldata + real cost, never sends). --broadcast requires a typed
 # confirmation of the exact total OKB, the processor address, and chain id 196, and refuses if
 # the computed cost exceeds config/cost.ts's spend cap.
 #
 # Key handling: KEYSTORE_ACCOUNT or KEY_FILE only, never --private-key on this command line,
 # never read/echoed/logged by this script.
+#
+# NONCE FIX (real bug found on a real run): two sequential `cast send` calls (mint, then
+# tapeout) against the public multi-node rpc.xlayer.tech gateway can race - the second call's
+# own "next nonce" auto-fetch can land on a backend node that hasn't yet seen the first tx,
+# even though the first `cast send` already blocked until its own receipt confirmed (status=1
+# was returned). Fixed by fetching the nonce ONCE up front and passing --nonce explicitly to
+# both sends, so neither depends on any node's own nonce bookkeeping being in sync.
 #
 # Usage: scripts/tapeout.sh <task-id> [--broadcast]
 set -euo pipefail
@@ -35,6 +44,31 @@ SPEND_CAP_OKB=0.05462  # PHASE 8: real OrderGuard-priced cap, was stale FAB_TST-
 FOUNDRY_BIN="${FOUNDRY_BIN:-$HOME/.foundry/bin}"
 CAST="$FOUNDRY_BIN/cast"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Poll a real receipt until status=1, or abort after a timeout. Used as a defensive check that
+# a send genuinely confirmed before relying on its effects - not the primary nonce fix (that's
+# the explicit --nonce assignment below), but a real guard against trusting an unconfirmed tx.
+wait_for_receipt() {
+  # Uses the raw eth_getTransactionReceipt RPC call, not "cast receipt", because cast's own
+  # receipt command internally polls/blocks waiting for a tx to appear rather than returning
+  # immediately for an unknown hash - wrong behavior for OUR polling loop, which wants a fast,
+  # non-blocking check on each try (confirmed directly: the raw RPC call returns "null"
+  # immediately for a bogus hash, in well under a second).
+  local txhash="$1" tries=0 result status
+  while [ "$tries" -lt 20 ]; do
+    result=$("$CAST" rpc eth_getTransactionReceipt "$txhash" --rpc-url "$RPC" 2>/dev/null || echo "null")
+    if [ "$result" != "null" ] && [ -n "$result" ]; then
+      status=$(echo "$result" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null || echo "?")
+      if [ "$status" = "0x1" ] || [ "$status" = "1" ]; then
+        return 0
+      fi
+    fi
+    tries=$((tries + 1))
+    sleep 3
+  done
+  echo "ABORT: tx $txhash did not confirm with status=1 within ~60s. Stopping before the next send." >&2
+  exit 1
+}
 
 echo "== safety guard: confirming processor identity on-chain before anything else =="
 REAL_CODE=$("$CAST" code "$PROCESSOR" --rpc-url "$RPC")
@@ -70,7 +104,7 @@ TOTAL_OKB=$(python3 -c "print($TOTAL_WEI / 1e18)")
 
 echo
 echo "task GC-$(printf '%03d' "$TASK"): nIn=$NIN nOut=$NOUT gates=$GATES"
-echo "real fee math: mint=$MINT_COST_WEI wei + tapeout=$TAPEOUT_FEE_WEI wei => total=$TOTAL_OKB OKB"
+echo "real fee math (worst case, assumes zero existing transistor balance): mint=$MINT_COST_WEI wei + tapeout=$TAPEOUT_FEE_WEI wei => total=$TOTAL_OKB OKB"
 echo "calldata (tapeout): $("$CAST" calldata "tapeout(bytes,uint32,uint32)" "$NL" "$NIN" "$NOUT")"
 
 if [ "$BROADCAST" -eq 0 ]; then
@@ -112,12 +146,55 @@ else
   [ "$TYPED_CHAIN" = "$CHAIN_ID" ] || { echo "Chain id did not match. Aborting." >&2; exit 1; }
 fi
 
-echo "Minting transistors..."
-MINT_TX=$("$CAST" send "$TRANSISTORS" "mint(uint256,uint256)" 0 "$GATES" --value "$MINT_COST_WEI" --rpc-url "$RPC" "${SIGNER_ARGS[@]}" --json)
-echo "$MINT_TX"
+# Resolve the real deployer address (needed for the balance check and explicit nonce tracking
+# below). Degrades gracefully if it can't be resolved non-interactively: in that case we skip
+# the existing-balance optimization (mint the full worst-case amount, same as before this fix)
+# and fall back to each send's own auto-nonce-fetch (same race risk as before this fix, but
+# only in that degraded case, which real unattended runs - the ones with real money at stake -
+# never hit, since FORGE_PASSWORD_FILE makes this resolve non-interactively).
+DEPLOYER=""
+DEPLOYER=$("$CAST" wallet address "${SIGNER_ARGS[@]}" 2>/dev/null) || DEPLOYER=""
+
+MINT_NEEDED="$GATES"
+EXISTING_BAL=0
+if [ -n "$DEPLOYER" ]; then
+  EXISTING_BAL=$("$CAST" call "$TRANSISTORS" "balanceOf(address,uint256)(uint256)" "$DEPLOYER" 0 --rpc-url "$RPC" 2>/dev/null | grep -oE '^[0-9]+' || echo 0)
+  MINT_NEEDED=$(python3 -c "print(max(0, $GATES - $EXISTING_BAL))")
+else
+  echo "  (could not resolve deployer address non-interactively - skipping existing-balance check, minting the full worst-case amount)"
+fi
+
+START_NONCE=""
+[ -n "$DEPLOYER" ] && START_NONCE=$("$CAST" nonce "$DEPLOYER" --rpc-url "$RPC" 2>/dev/null || echo "")
+
+NEXT_NONCE_ARGS=()
+if [ "$MINT_NEEDED" = "0" ]; then
+  echo "Skipping mint: existing transistor balance $EXISTING_BAL already covers the $GATES gates needed."
+  [ -n "$START_NONCE" ] && NEXT_NONCE_ARGS=(--nonce "$START_NONCE")
+else
+  if [ "$EXISTING_BAL" != "0" ]; then
+    echo "Existing transistor balance $EXISTING_BAL partially covers $GATES gates needed - minting only the shortfall: $MINT_NEEDED."
+  fi
+  MINT_COST_WEI_ACTUAL=$(python3 -c "print($MINT_NEEDED * $MINT_PRICE_WEI + $PROTOCOL_FEE_WEI)")
+  MINT_NONCE_ARGS=()
+  [ -n "$START_NONCE" ] && MINT_NONCE_ARGS=(--nonce "$START_NONCE")
+  echo "Minting transistors..."
+  MINT_TX=$("$CAST" send "$TRANSISTORS" "mint(uint256,uint256)" 0 "$MINT_NEEDED" --value "$MINT_COST_WEI_ACTUAL" --rpc-url "$RPC" "${SIGNER_ARGS[@]}" "${MINT_NONCE_ARGS[@]}" --json)
+  echo "$MINT_TX"
+  MINT_STATUS=$(echo "$MINT_TX" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status','?'))")
+  if [ "$MINT_STATUS" != "0x1" ] && [ "$MINT_STATUS" != "1" ]; then
+    echo "ABORT: mint tx did not report status=1 (got '$MINT_STATUS'). Stopping before tape-out." >&2
+    exit 1
+  fi
+  MINT_TXHASH=$(echo "$MINT_TX" | python3 -c "import json,sys; print(json.load(sys.stdin)['transactionHash'])")
+  wait_for_receipt "$MINT_TXHASH"
+  if [ -n "$START_NONCE" ]; then
+    NEXT_NONCE_ARGS=(--nonce "$((START_NONCE + 1))")
+  fi
+fi
 
 echo "Taping out..."
-TO_TX=$("$CAST" send "$PROCESSOR" "tapeout(bytes,uint32,uint32)" "$NL" "$NIN" "$NOUT" --value "$TAPEOUT_FEE_WEI" --rpc-url "$RPC" "${SIGNER_ARGS[@]}" --json)
+TO_TX=$("$CAST" send "$PROCESSOR" "tapeout(bytes,uint32,uint32)" "$NL" "$NIN" "$NOUT" --value "$TAPEOUT_FEE_WEI" --rpc-url "$RPC" "${SIGNER_ARGS[@]}" "${NEXT_NONCE_ARGS[@]}" --json)
 echo "$TO_TX"
 TXHASH=$(echo "$TO_TX" | python3 -c "import json,sys; print(json.load(sys.stdin)['transactionHash'])")
 
@@ -141,3 +218,4 @@ else
   echo "- $(date -u +%Y-%m-%d): processor=$PROCESSOR circuitId=$CIRCUIT_ID tx=$TXHASH" >> "$ROOT/docs/TAPEOUTS.md"
   echo "appended to docs/TAPEOUTS.md"
 fi
+

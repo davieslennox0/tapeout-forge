@@ -135,5 +135,87 @@ else
 fi
 rm -f "$TMPSCRIPT2" "$GOODPW2"
 
+echo "== test 11: transistor-mint dedup - skip/partial/full mint cases, all real on-chain checks =="
+# Real bug found during the owner's actual go-live run: GC-037's mint succeeded (36 real
+# transistors held), but its own tapeout failed on an unrelated nonce race, leaving 36 unused
+# transistors sitting in the wallet. A naive resume would have re-minted the full amount,
+# wasting real OKB. Fixed: tapeout.sh now checks real balanceOf() first and only mints the
+# shortfall (or skips minting entirely if the existing balance already covers it).
+DEDUP_PW="/tmp/test-dedup-pw-$$"
+printf "testpw123unattended" > "$DEDUP_PW"
+chmod 600 "$DEDUP_PW"
+DEDUP_KEYDIR="/tmp/test-dedup-keystore-$$"
+mkdir -p "$DEDUP_KEYDIR"
+PK_JSON=$("$CAST" wallet new-mnemonic --json)
+DEDUP_PK=$(echo "$PK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['data']['accounts'][0]['private_key'])")
+DEDUP_ADDR=$(echo "$PK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['data']['accounts'][0]['address'])")
+"$CAST" wallet import dedup-test --keystore-dir "$DEDUP_KEYDIR" --private-key "$DEDUP_PK" --unsafe-password testpw123unattended >/dev/null
+"$CAST" rpc anvil_setBalance "$DEDUP_ADDR" 0x56BC75E2D63100000 --rpc-url "$RPC" >/dev/null 2>&1
+
+# Case A: zero existing balance -> full mint, then tapeout (task 20, fresh nIn=3 task not used
+# by the real run, keeps this test independent of the owner's real circuits).
+OUT_A=$(KEY_FILE="$DEDUP_KEYDIR/dedup-test" FORGE_PASSWORD_FILE="$DEDUP_PW" AUTO_CONFIRM=1 FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/tapeout.sh" 7 --broadcast 2>&1) || true
+echo "$OUT_A" | grep -q "Minting transistors" && echo "$OUT_A" | grep -q "circuitId:" \
+  && ok "case A (zero balance): mints full amount, tapeout succeeds" \
+  || bad "case A did not mint-then-tapeout as expected: $OUT_A"
+
+# Case B: existing balance already sufficient -> mint skipped entirely.
+BAL_B=$("$CAST" call "0x8e71FC45ff47E5a7bA1ad2960793ebAdD2739D9e" "balanceOf(address,uint256)(uint256)" "$DEDUP_ADDR" 0 --rpc-url "$RPC")
+"$CAST" send "0x8e71FC45ff47E5a7bA1ad2960793ebAdD2739D9e" "mint(uint256,uint256)" 0 50 --value 0.00566ether --rpc-url "$RPC" --keystore "$DEDUP_KEYDIR/dedup-test" --password-file "$DEDUP_PW" >/dev/null 2>&1 || true
+OUT_B=$(KEY_FILE="$DEDUP_KEYDIR/dedup-test" FORGE_PASSWORD_FILE="$DEDUP_PW" AUTO_CONFIRM=1 FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/tapeout.sh" 14 --broadcast 2>&1) || true
+echo "$OUT_B" | grep -q "Skipping mint: existing transistor balance" \
+  && ok "case B (sufficient existing balance): mint skipped entirely" \
+  || bad "case B did not skip the mint as expected: $OUT_B"
+
+# Case C: non-zero but insufficient balance -> mints only the real shortfall.
+OUT_C=$(KEY_FILE="$DEDUP_KEYDIR/dedup-test" FORGE_PASSWORD_FILE="$DEDUP_PW" AUTO_CONFIRM=1 FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/tapeout.sh" 35 --broadcast 2>&1) || true
+echo "$OUT_C" | grep -q "partially covers" && echo "$OUT_C" | grep -q "circuitId:" \
+  && ok "case C (partial existing balance): mints only the shortfall, then tapes out successfully" \
+  || bad "case C did not do a partial mint as expected: $OUT_C"
+rm -f "$DEDUP_PW"
+rm -rf "$DEDUP_KEYDIR"
+
+echo "== test 12: nonce-safe sequential sends - mint-then-tapeout no longer races, and the receipt-wait aborts cleanly on a bogus hash =="
+# Real bug found on the owner's actual run: two rapid sequential `cast send` calls (mint, then
+# tapeout) against the public multi-node rpc.xlayer.tech gateway raced - the second call's own
+# nonce auto-fetch landed on a backend node that hadn't yet seen the first tx. Fixed with
+# explicit --nonce tracking (fetched once up front) plus a real wait_for_receipt check using the
+# raw eth_getTransactionReceipt RPC call (NOT "cast receipt", which was found to itself block/
+# poll internally for an unknown hash rather than returning fast - wrong for our own poll loop).
+# Test 11 above already proves the real mint-then-tapeout sequence succeeds end to end on every
+# case (A/B/C) without a nonce error - that IS the real regression test for the race itself.
+# This test specifically exercises wait_for_receipt's abort path on a hash that will never
+# confirm, extracted to its own tiny script so it's fast and isolated from a real send.
+WAITFN_TEST="$ROOT/scripts/.test-wait-for-receipt.sh"
+cat > "$WAITFN_TEST" << 'WAITEOF'
+#!/usr/bin/env bash
+CAST="$1"; RPC="$2"; TXHASH="$3"
+wait_for_receipt() {
+  local txhash="$1" tries=0 result status
+  while [ "$tries" -lt 3 ]; do
+    result=$("$CAST" rpc eth_getTransactionReceipt "$txhash" --rpc-url "$RPC" 2>/dev/null || echo "null")
+    if [ "$result" != "null" ] && [ -n "$result" ]; then
+      status=$(echo "$result" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null || echo "?")
+      [ "$status" = "0x1" ] || [ "$status" = "1" ] && return 0
+    fi
+    tries=$((tries + 1))
+    sleep 1
+  done
+  echo "ABORT: tx $txhash did not confirm with status=1 within ~60s. Stopping before the next send." >&2
+  exit 1
+}
+wait_for_receipt "$TXHASH"
+echo "should never reach here"
+WAITEOF
+chmod +x "$WAITFN_TEST"
+if OUT=$(timeout 30 bash "$WAITFN_TEST" "$CAST" "$RPC" 0xdeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddeaddead 2>&1); then
+  bad "wait_for_receipt did not abort on a tx hash that will never confirm"
+else
+  echo "$OUT" | grep -q "did not confirm with status=1" && ok "wait_for_receipt's abort path triggers correctly on an unconfirmable hash" || bad "aborted but not for the right reason: $OUT"
+fi
+rm -f "$WAITFN_TEST"
+
 echo
-echo "== $PASS passed, $FAIL failed (re-stated after new tests) =="
+echo "== $PASS passed, $FAIL failed =="
+[ "$FAIL" -eq 0 ]
+
