@@ -87,3 +87,53 @@ echo "$OUT" | grep -q "estimating real deployment gas" \
 echo
 echo "== $PASS passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]
+
+echo "== test 7: --unattended rejects a password file with the wrong mode =="
+BADPW="/tmp/test-badmode-pw-$$"
+echo "testpassword" > "$BADPW"
+chmod 644 "$BADPW"
+if OUT=$(FORGE_RPC_URL="$RPC" FORGE_PASSWORD_FILE="$BADPW" bash "$ROOT/scripts/go-live.sh" my-forgeout-key --variant gc014 --broadcast --unattended --max-okb 1.0 2>&1); then
+  bad "accepted a mode-644 password file (should have aborted)"
+else
+  echo "$OUT" | grep -q "must be mode 600" && ok "rejects a password file with the wrong mode" || bad "aborted but not for the right reason: $OUT"
+fi
+rm -f "$BADPW"
+
+echo "== test 8: --unattended refuses a password file located inside the repo =="
+INREPO="$ROOT/scripts/.test-inrepo-pw"
+echo "testpassword" > "$INREPO"
+chmod 600 "$INREPO"
+if OUT=$(FORGE_RPC_URL="$RPC" FORGE_PASSWORD_FILE="$INREPO" bash "$ROOT/scripts/go-live.sh" my-forgeout-key --variant gc014 --broadcast --unattended --max-okb 1.0 2>&1); then
+  bad "accepted a password file inside the repo (should have aborted)"
+else
+  echo "$OUT" | grep -q "inside this repo" && ok "refuses a password file located inside the repo" || bad "aborted but not for the right reason: $OUT"
+fi
+rm -f "$INREPO"
+
+echo "== test 9: --unattended spend-cap abort uses --max-okb, not just the default cap =="
+GOODPW="/tmp/test-goodmode-pw-$$"
+printf "testpw123unattended" > "$GOODPW"
+chmod 600 "$GOODPW"
+if OUT=$(FORGE_RPC_URL="$RPC" FORGE_PASSWORD_FILE="$GOODPW" GAS_PRICE_CEILING_WEI=2000000000 bash "$ROOT/scripts/go-live.sh" test-unattended2 --variant gc014 --broadcast --unattended --max-okb 0.001 2>&1); then
+  bad "did not abort despite exceeding the tiny --max-okb"
+else
+  echo "$OUT" | grep -qE "would exceed cap|exceeds the configured spend cap" && ok "aborts for the cap reason specifically under a tiny --max-okb" || bad "aborted but not for the right reason: $OUT"
+fi
+rm -f "$GOODPW"
+
+echo "== test 10: --unattended's 10% cost-tolerance check aborts when a step's real cost exceeds reference+10% =="
+TMPSCRIPT2="$ROOT/scripts/.go-live-test-tolerance.sh"
+sed 's/\[12\]="0.00756"/[12]="0.001"/' "$ROOT/scripts/go-live.sh" > "$TMPSCRIPT2"
+chmod +x "$TMPSCRIPT2"
+GOODPW2="/tmp/test-tolerance-pw-$$"
+printf "testpw123unattended" > "$GOODPW2"
+chmod 600 "$GOODPW2"
+if OUT=$(FORGE_RPC_URL="$RPC" FORGE_PASSWORD_FILE="$GOODPW2" GAS_PRICE_CEILING_WEI=2000000000 bash "$TMPSCRIPT2" test-unattended2 --variant gc014 --broadcast --unattended --max-okb 1.0 2>&1); then
+  bad "did not abort despite GC-012's real cost exceeding the artificially-lowered reference+10%"
+else
+  echo "$OUT" | grep -q "exceeds its reference+10% ceiling" && ok "aborts when real cost exceeds reference+10% (10% tolerance check works)" || bad "aborted but not for the right reason: $OUT"
+fi
+rm -f "$TMPSCRIPT2" "$GOODPW2"
+
+echo
+echo "== $PASS passed, $FAIL failed (re-stated after new tests) =="

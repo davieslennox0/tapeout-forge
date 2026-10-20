@@ -10,7 +10,7 @@
 # Usage: scripts/deploy-registry.sh [--broadcast]
 set -euo pipefail
 
-RPC="https://rpc.xlayer.tech"
+RPC="${FORGE_RPC_URL:-https://rpc.xlayer.tech}"  # override only for testing against a local fork
 CHAIN_ID=196
 FOUNDRY_BIN="${FOUNDRY_BIN:-$HOME/.foundry/bin}"
 FORGE="$FOUNDRY_BIN/forge"
@@ -28,6 +28,9 @@ if [ -n "${KEYSTORE_ACCOUNT:-}" ]; then
 else
   SIGNER_ARGS=(--keystore "$KEY_FILE")
 fi
+# AUTO_CONFIRM mode (go-live.sh --unattended only): decrypt via a password FILE, never typed.
+# This script never opens/reads/echoes the file - only cast ever touches its contents.
+[ -n "${FORGE_PASSWORD_FILE:-}" ] && SIGNER_ARGS+=(--password-file "$FORGE_PASSWORD_FILE")
 
 echo "== dry-run: estimating real deployment gas, read-only (no signer needed for this part) =="
 # PHASE 9 fix: this Foundry version's `forge create` has no --dry-run flag at all (confirmed
@@ -53,19 +56,29 @@ if [ "$BROADCAST" -eq 0 ]; then
 fi
 
 echo
-echo "=== BROADCAST CONFIRMATION REQUIRED ==="
-echo "You are about to deploy ForgeRegistry for real on chain $CHAIN_ID."
-echo "Type the exact chain id, then press enter:"
-read -r TYPED_CHAIN
-if [ "$TYPED_CHAIN" != "$CHAIN_ID" ]; then
-  echo "Chain id did not match. Aborting." >&2
-  exit 1
-fi
-echo "Type the exact estimated cost shown above (as printed, e.g. 0.0123456), then press enter:"
-read -r TYPED_COST
-if [ "$TYPED_COST" != "$COST_OKB" ]; then
-  echo "Cost confirmation did not match exactly. Aborting." >&2
-  exit 1
+if [ "${AUTO_CONFIRM:-0}" = "1" ]; then
+  echo "=== AUTO_CONFIRM (unattended) - verifying programmatically instead of a typed prompt ==="
+  REAL_CHAIN_ID=$("$CAST" chain-id --rpc-url "$RPC")
+  if [ "$REAL_CHAIN_ID" != "$CHAIN_ID" ]; then
+    echo "ABORT: live chain id is $REAL_CHAIN_ID, expected $CHAIN_ID." >&2
+    exit 1
+  fi
+  echo "  verified: live chain id == $CHAIN_ID"
+else
+  echo "=== BROADCAST CONFIRMATION REQUIRED ==="
+  echo "You are about to deploy ForgeRegistry for real on chain $CHAIN_ID."
+  echo "Type the exact chain id, then press enter:"
+  read -r TYPED_CHAIN
+  if [ "$TYPED_CHAIN" != "$CHAIN_ID" ]; then
+    echo "Chain id did not match. Aborting." >&2
+    exit 1
+  fi
+  echo "Type the exact estimated cost shown above (as printed, e.g. 0.0123456), then press enter:"
+  read -r TYPED_COST
+  if [ "$TYPED_COST" != "$COST_OKB" ]; then
+    echo "Cost confirmation did not match exactly. Aborting." >&2
+    exit 1
+  fi
 fi
 
 echo "Broadcasting for real..."

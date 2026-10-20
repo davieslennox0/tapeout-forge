@@ -19,7 +19,7 @@ shift 2 || true
 BROADCAST=0
 [ "${1:-}" = "--broadcast" ] && BROADCAST=1
 
-RPC="https://rpc.xlayer.tech"
+RPC="${FORGE_RPC_URL:-https://rpc.xlayer.tech}"  # override only for testing against a local fork
 CHAIN_ID=196
 # Must match config/chains.ts's ACTIVE_PROCESSOR / ACTIVE_PROCESSOR_NAME.
 PROCESSOR="0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355"  # OrderGuard (PHASE 7 default)
@@ -91,18 +91,28 @@ if [ -z "${KEYSTORE_ACCOUNT:-}" ] && [ -z "${KEY_FILE:-}" ]; then
 fi
 SIGNER_ARGS=()
 [ -n "${KEYSTORE_ACCOUNT:-}" ] && SIGNER_ARGS=(--account "$KEYSTORE_ACCOUNT") || SIGNER_ARGS=(--keystore "$KEY_FILE")
+[ -n "${FORGE_PASSWORD_FILE:-}" ] && SIGNER_ARGS+=(--password-file "$FORGE_PASSWORD_FILE")
 
 echo
-echo "=== BROADCAST CONFIRMATION REQUIRED ==="
-echo "Type the exact registry address ($REGISTRY), then press enter:"
-read -r TYPED_ADDR
-[ "$TYPED_ADDR" = "$REGISTRY" ] || { echo "Address did not match. Aborting." >&2; exit 1; }
-echo "Type the exact chain id ($CHAIN_ID), then press enter:"
-read -r TYPED_CHAIN
-[ "$TYPED_CHAIN" = "$CHAIN_ID" ] || { echo "Chain id did not match. Aborting." >&2; exit 1; }
-echo "This submission costs only real gas, no OKB value is sent. Type CONFIRM to proceed:"
-read -r TYPED_OK
-[ "$TYPED_OK" = "CONFIRM" ] || { echo "Not confirmed. Aborting." >&2; exit 1; }
+if [ "${AUTO_CONFIRM:-0}" = "1" ]; then
+  echo "=== AUTO_CONFIRM (unattended) - verifying programmatically instead of a typed prompt ==="
+  REAL_CHAIN_ID=$("$CAST" chain-id --rpc-url "$RPC")
+  [ "$REAL_CHAIN_ID" = "$CHAIN_ID" ] || { echo "ABORT: live chain id is $REAL_CHAIN_ID, expected $CHAIN_ID." >&2; exit 1; }
+  REG_CODE=$("$CAST" code "$REGISTRY" --rpc-url "$RPC")
+  [ "$REG_CODE" != "0x" ] || { echo "ABORT: registry $REGISTRY has no code." >&2; exit 1; }
+  echo "  verified: live chain id == $CHAIN_ID, registry $REGISTRY has real code"
+else
+  echo "=== BROADCAST CONFIRMATION REQUIRED ==="
+  echo "Type the exact registry address ($REGISTRY), then press enter:"
+  read -r TYPED_ADDR
+  [ "$TYPED_ADDR" = "$REGISTRY" ] || { echo "Address did not match. Aborting." >&2; exit 1; }
+  echo "Type the exact chain id ($CHAIN_ID), then press enter:"
+  read -r TYPED_CHAIN
+  [ "$TYPED_CHAIN" = "$CHAIN_ID" ] || { echo "Chain id did not match. Aborting." >&2; exit 1; }
+  echo "This submission costs only real gas, no OKB value is sent. Type CONFIRM to proceed:"
+  read -r TYPED_OK
+  [ "$TYPED_OK" = "CONFIRM" ] || { echo "Not confirmed. Aborting." >&2; exit 1; }
+fi
 
 "$CAST" send "$REGISTRY" "submit(bytes32,address,uint256,uint8,uint8,uint32,uint32,bytes[],bytes32)" \
   "$SPEC_HASH" "$PROCESSOR" "$CIRCUIT_ID" "$NIN" "$NOUT" "$GATES" "$DEPTH" "$EXPECTED_ARG" "0x0000000000000000000000000000000000000000000000000000000000000000" \

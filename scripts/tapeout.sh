@@ -18,7 +18,7 @@ shift || true
 BROADCAST=0
 [ "${1:-}" = "--broadcast" ] && BROADCAST=1
 
-RPC="https://rpc.xlayer.tech"
+RPC="${FORGE_RPC_URL:-https://rpc.xlayer.tech}"  # override only for testing against a local fork
 CHAIN_ID=196
 # Must match config/chains.ts's ACTIVE_PROCESSOR / ACTIVE_PROCESSOR_NAME / ACTIVE_TRANSISTORS.
 PROCESSOR="0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355"      # OrderGuard (PHASE 7 default)
@@ -28,6 +28,9 @@ TAPEOUT_FEE_WEI=1300000000000000
 MINT_PRICE_WEI=100000000000000
 PROTOCOL_FEE_WEI=660000000000000
 SPEND_CAP_OKB=0.05462  # PHASE 8: real OrderGuard-priced cap, was stale FAB_TST-era 0.31596
+# go-live.sh --unattended --max-okb passes a stricter override here too, so a single step can
+# never broadcast past it even before the orchestrator's own cumulative check runs.
+[ -n "${MAX_OKB_OVERRIDE:-}" ] && SPEND_CAP_OKB=$(python3 -c "print(min($SPEND_CAP_OKB, $MAX_OKB_OVERRIDE))")
 
 FOUNDRY_BIN="${FOUNDRY_BIN:-$HOME/.foundry/bin}"
 CAST="$FOUNDRY_BIN/cast"
@@ -82,6 +85,7 @@ if [ -z "${KEYSTORE_ACCOUNT:-}" ] && [ -z "${KEY_FILE:-}" ]; then
 fi
 SIGNER_ARGS=()
 [ -n "${KEYSTORE_ACCOUNT:-}" ] && SIGNER_ARGS=(--account "$KEYSTORE_ACCOUNT") || SIGNER_ARGS=(--keystore "$KEY_FILE")
+[ -n "${FORGE_PASSWORD_FILE:-}" ] && SIGNER_ARGS+=(--password-file "$FORGE_PASSWORD_FILE")
 
 CAP_CHECK=$(python3 -c "print(1 if $TOTAL_OKB > $SPEND_CAP_OKB else 0)")
 if [ "$CAP_CHECK" = "1" ]; then
@@ -90,16 +94,23 @@ if [ "$CAP_CHECK" = "1" ]; then
 fi
 
 echo
-echo "=== BROADCAST CONFIRMATION REQUIRED ==="
-echo "Type the exact total OKB shown above ($TOTAL_OKB), then press enter:"
-read -r TYPED_COST
-[ "$TYPED_COST" = "$TOTAL_OKB" ] || { echo "Cost did not match. Aborting." >&2; exit 1; }
-echo "Type the exact processor address ($PROCESSOR), then press enter:"
-read -r TYPED_ADDR
-[ "$TYPED_ADDR" = "$PROCESSOR" ] || { echo "Address did not match. Aborting." >&2; exit 1; }
-echo "Type the exact chain id ($CHAIN_ID), then press enter:"
-read -r TYPED_CHAIN
-[ "$TYPED_CHAIN" = "$CHAIN_ID" ] || { echo "Chain id did not match. Aborting." >&2; exit 1; }
+if [ "${AUTO_CONFIRM:-0}" = "1" ]; then
+  echo "=== AUTO_CONFIRM (unattended) - verifying programmatically instead of a typed prompt ==="
+  REAL_CHAIN_ID=$("$CAST" chain-id --rpc-url "$RPC")
+  [ "$REAL_CHAIN_ID" = "$CHAIN_ID" ] || { echo "ABORT: live chain id is $REAL_CHAIN_ID, expected $CHAIN_ID." >&2; exit 1; }
+  echo "  verified: live chain id == $CHAIN_ID, processor identity already confirmed above, cap already checked by the caller"
+else
+  echo "=== BROADCAST CONFIRMATION REQUIRED ==="
+  echo "Type the exact total OKB shown above ($TOTAL_OKB), then press enter:"
+  read -r TYPED_COST
+  [ "$TYPED_COST" = "$TOTAL_OKB" ] || { echo "Cost did not match. Aborting." >&2; exit 1; }
+  echo "Type the exact processor address ($PROCESSOR), then press enter:"
+  read -r TYPED_ADDR
+  [ "$TYPED_ADDR" = "$PROCESSOR" ] || { echo "Address did not match. Aborting." >&2; exit 1; }
+  echo "Type the exact chain id ($CHAIN_ID), then press enter:"
+  read -r TYPED_CHAIN
+  [ "$TYPED_CHAIN" = "$CHAIN_ID" ] || { echo "Chain id did not match. Aborting." >&2; exit 1; }
+fi
 
 echo "Minting transistors..."
 MINT_TX=$("$CAST" send "$TRANSISTORS" "mint(uint256,uint256)" 0 "$GATES" --value "$MINT_COST_WEI" --rpc-url "$RPC" "${SIGNER_ARGS[@]}" --json)

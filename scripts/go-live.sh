@@ -1,23 +1,35 @@
 #!/usr/bin/env bash
-# PHASE 9: ordered go-live orchestrator. DRY-RUN by default (no --broadcast => nothing is ever
-# sent). Never reads/prints/logs a key - uses KEYSTORE_ACCOUNT (set from <account-name>)
-# internally via the existing per-step scripts, which already enforce keystore-only signing.
-# Resumable: a circuit is skipped only if docs/TAPEOUTS.md AND live on-chain registry state
-# both confirm it's already done - never the file alone. Aborts the WHOLE run (no partial
-# continuation to the next circuit) if cumulative spend would exceed the cap, any step fails,
-# or verify-live.sh reports a mismatch. Never auto-retries a failed broadcast.
+# PHASE 9 (+ unattended mode): ordered go-live orchestrator. DRY-RUN by default (no --broadcast
+# => nothing is ever sent). Never reads/prints/logs a key - uses KEYSTORE_ACCOUNT (set from
+# <account-name>) internally via the existing per-step scripts, which already enforce
+# keystore-only signing. Resumable: a circuit is skipped only if docs/TAPEOUTS.md AND live
+# on-chain registry state both confirm it's already done - never the file alone. Aborts the
+# WHOLE run (no partial continuation to the next circuit) if cumulative spend would exceed the
+# cap, any step fails, or verify-live.sh reports a mismatch. Never auto-retries a failed
+# broadcast.
+#
+# --unattended replaces the human-typed broadcast confirmations with automated checks (chain id,
+# contract identity, cost-within-10%-of-reference, spend cap, verify-live after every circuit).
+# It requires --max-okb and a FORGE_PASSWORD_FILE (default ~/.forgeout/pw) that: exists, is mode
+# 600 exactly, and is NOT inside this repo. The password file's PATH is passed to cast's own
+# --password-file flag by the underlying scripts - this script never opens, reads, or echoes it.
 #
 # Usage: scripts/go-live.sh <account-name> [--variant gc014|gc039] [--broadcast]
+#                            [--unattended --max-okb <value>]
 set -euo pipefail
 
-ACCOUNT="${1:?usage: go-live.sh <account-name> [--variant gc014|gc039] [--broadcast]}"
+ACCOUNT="${1:?usage: go-live.sh <account-name> [--variant gc014|gc039] [--broadcast] [--unattended --max-okb <value>]}"
 shift || true
 VARIANT="gc014"
 BROADCAST=0
+UNATTENDED=0
+MAX_OKB=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --variant) VARIANT="${2:?--variant needs gc014 or gc039}"; shift 2 ;;
     --broadcast) BROADCAST=1; shift ;;
+    --unattended) UNATTENDED=1; shift ;;
+    --max-okb) MAX_OKB="${2:?--max-okb needs a value}"; shift 2 ;;
     --private-key|--privatekey|-pk)
       echo "ABORT: --private-key is never accepted by this script. Use KEYSTORE_ACCOUNT via <account-name> only." >&2
       exit 1 ;;
@@ -43,16 +55,72 @@ FOUNDRY_BIN="${FOUNDRY_BIN:-$HOME/.foundry/bin}"
 CAST="$FOUNDRY_BIN/cast"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Real per-step cost references, from the real dry-run this project already ran (docs/COSTS.md,
+# gc014 variant) - keep in sync by hand. Used ONLY in --unattended mode's 10%-tolerance check,
+# to catch the real on-chain fee parameters having drifted upward since that dry-run.
+declare -A REFERENCE_OKB=(
+  [deploy]="0.0000093157"
+  [12]="0.00756" [37]="0.00556" [50]="0.00656" [14]="0.00316" [46]="0.01116"
+)
+
+AUTO_CONFIRM=0
+if [ "$UNATTENDED" -eq 1 ]; then
+  if [ "$BROADCAST" -eq 0 ]; then
+    echo "ABORT: --unattended only makes sense with --broadcast (it replaces the broadcast confirmation, there is nothing to automate in a dry run)." >&2
+    exit 1
+  fi
+  if [ -z "$MAX_OKB" ]; then
+    echo "ABORT: --unattended requires --max-okb <value> explicitly - no silent default." >&2
+    exit 1
+  fi
+  # Unattended's cap is the stricter of the two - never silently loosen the existing cap.
+  SPEND_CAP_OKB=$(python3 -c "print(min($SPEND_CAP_OKB, $MAX_OKB))")
+
+  FORGE_PASSWORD_FILE="${FORGE_PASSWORD_FILE:-$HOME/.forgeout/pw}"
+  if [ ! -f "$FORGE_PASSWORD_FILE" ]; then
+    echo "ABORT: FORGE_PASSWORD_FILE ($FORGE_PASSWORD_FILE) does not exist." >&2
+    exit 1
+  fi
+  PW_MODE=$(stat -c "%a" "$FORGE_PASSWORD_FILE" 2>/dev/null || stat -f "%Lp" "$FORGE_PASSWORD_FILE")
+  if [ "$PW_MODE" != "600" ]; then
+    echo "ABORT: FORGE_PASSWORD_FILE ($FORGE_PASSWORD_FILE) must be mode 600 exactly, got $PW_MODE." >&2
+    exit 1
+  fi
+  PW_REAL="$(cd "$(dirname "$FORGE_PASSWORD_FILE")" && pwd)/$(basename "$FORGE_PASSWORD_FILE")"
+  case "$PW_REAL" in
+    "$ROOT"/*|"$ROOT")
+      echo "ABORT: FORGE_PASSWORD_FILE resolves to $PW_REAL, which is inside this repo ($ROOT). It must live outside the repo." >&2
+      exit 1 ;;
+  esac
+  AUTO_CONFIRM=1
+  echo "== unattended mode: FORGE_PASSWORD_FILE=$FORGE_PASSWORD_FILE (mode 600, outside repo, verified) max-okb=$MAX_OKB effective-cap=$SPEND_CAP_OKB =="
+  echo
+fi
+
+check_reference() {
+  local step_okb="$1" ref_key="$2" label="$3"
+  [ "$UNATTENDED" -eq 1 ] || return 0
+  local ref ceiling over
+  ref="${REFERENCE_OKB[$ref_key]:-}"
+  [ -z "$ref" ] && return 0
+  ceiling=$(python3 -c "print($ref * 1.10)")
+  over=$(python3 -c "print(1 if $step_okb > $ceiling else 0)")
+  echo "  [unattended check] $label: real=$step_okb OKB  reference=$ref OKB  +10% ceiling=$ceiling OKB"
+  if [ "$over" = "1" ]; then
+    echo "ABORT: $label's real cost $step_okb OKB exceeds its reference+10% ceiling $ceiling OKB. Fees may have changed on-chain since the last dry-run. Stopping - do not proceed." >&2
+    exit 1
+  fi
+}
+
 # cast wallet address --account decrypts the keystore to re-derive the address - it needs the
-# real password, prompted interactively. This script never supplies one; if stdin has no tty
-# (e.g. this exact dry-run invocation, run by an agent rather than the real owner at a real
-# terminal), that prompt fails cleanly rather than hanging or being bypassed - that's the
-# security boundary working, not a bug. Degrade gracefully: skip the address-derived preflight
-# re-check here and tell the owner to have already run it themselves (which step 0 of Phase 9
-# already does, against a manually-supplied address, before go-live.sh is ever invoked).
+# real password. In --unattended mode it's supplied via --password-file (never printed/logged by
+# this script); otherwise it's prompted interactively (or skipped gracefully if no tty - see the
+# else branch below, unchanged from before unattended mode existed).
 DEPLOYER=""
-if DEPLOYER=$("$CAST" wallet address --account "$ACCOUNT" 2>/dev/null); then
-  echo "== go-live: account=$ACCOUNT address=$DEPLOYER variant=$VARIANT broadcast=$BROADCAST =="
+ADDR_ARGS=(wallet address --account "$ACCOUNT")
+[ "$UNATTENDED" -eq 1 ] && ADDR_ARGS+=(--password-file "$FORGE_PASSWORD_FILE")
+if DEPLOYER=$("$CAST" "${ADDR_ARGS[@]}" 2>/dev/null); then
+  echo "== go-live: account=$ACCOUNT address=$DEPLOYER variant=$VARIANT broadcast=$BROADCAST unattended=$UNATTENDED =="
   echo
   echo "--- step 0: preflight ---"
   if ! bash "$ROOT/scripts/preflight.sh" "$DEPLOYER" --variant "$VARIANT"; then
@@ -60,7 +128,11 @@ if DEPLOYER=$("$CAST" wallet address --account "$ACCOUNT" 2>/dev/null); then
     exit 1
   fi
 else
-  echo "== go-live: account=$ACCOUNT variant=$VARIANT broadcast=$BROADCAST =="
+  if [ "$UNATTENDED" -eq 1 ]; then
+    echo "ABORT: --unattended requires decrypting the keystore to run a real preflight check first; could not derive the address from '$ACCOUNT' via the given FORGE_PASSWORD_FILE. Check the password file is correct for this account." >&2
+    exit 1
+  fi
+  echo "== go-live: account=$ACCOUNT variant=$VARIANT broadcast=$BROADCAST unattended=$UNATTENDED =="
   echo
   echo "--- step 0: preflight ---"
   echo "SKIP: could not decrypt keystore '$ACCOUNT' non-interactively (no password prompt available"
@@ -114,6 +186,11 @@ already_done() {
 }
 
 echo "--- step 1: ForgeRegistry ---"
+REAL_CHAIN_ID=$("$CAST" chain-id --rpc-url "$RPC")
+if [ "$REAL_CHAIN_ID" != "$CHAIN_ID" ]; then
+  echo "ABORT: live chain id is $REAL_CHAIN_ID, expected $CHAIN_ID. Refusing to proceed." >&2
+  exit 1
+fi
 EXISTING_CODE=$("$CAST" code "$FORGE_REGISTRY_ADDRESS" --rpc-url "$RPC")
 if [ "$EXISTING_CODE" != "0x" ]; then
   echo "SKIP (resumed): FORGE_REGISTRY_ADDRESS=$FORGE_REGISTRY_ADDRESS already has real code - not redeploying."
@@ -121,7 +198,8 @@ else
   DEPLOY_ARGS=()
   [ "$BROADCAST" -eq 1 ] && DEPLOY_ARGS=(--broadcast)
   set +e
-  DEPLOY_OUT=$(KEYSTORE_ACCOUNT="$ACCOUNT" bash "$ROOT/scripts/deploy-registry.sh" "${DEPLOY_ARGS[@]}" 2>&1)
+  DEPLOY_OUT=$(KEYSTORE_ACCOUNT="$ACCOUNT" AUTO_CONFIRM="$AUTO_CONFIRM" FORGE_PASSWORD_FILE="${FORGE_PASSWORD_FILE:-}" \
+    bash "$ROOT/scripts/deploy-registry.sh" "${DEPLOY_ARGS[@]}" 2>&1)
   DEPLOY_RC=$?
   set -e
   echo "$DEPLOY_OUT"
@@ -129,6 +207,8 @@ else
     echo "ABORT: deploy-registry.sh failed." >&2
     exit 1
   fi
+  DEPLOY_EST=$(echo "$DEPLOY_OUT" | grep -oE 'estimated cost: [0-9.]+ OKB' | grep -oE '[0-9.]+' | head -1)
+  [ -n "$DEPLOY_EST" ] && check_reference "$DEPLOY_EST" "deploy" "deploy-registry"
   if [ "$BROADCAST" -eq 0 ]; then
     echo "  (dry-run only - nothing deployed, no address to capture)"
   else
@@ -138,8 +218,6 @@ else
       echo "ABORT: deploy appeared to run but this script could not parse the deployed address/tx hash from its output. Stopping rather than guessing - check manually before re-running." >&2
       exit 1
     fi
-    # Never trust forge create's own stdout claim alone - independently re-check the real receipt
-    # and the real code, same discipline used everywhere else in this project.
     STATUS=$("$CAST" receipt "$NEW_TX" --rpc-url "$RPC" --field status 2>/dev/null || echo "")
     REAL_CODE=$("$CAST" code "$NEW_ADDR" --rpc-url "$RPC")
     if { [ "$STATUS" != "1" ] && [ "$STATUS" != "0x1" ]; } || [ "$REAL_CODE" = "0x" ]; then
@@ -171,7 +249,8 @@ for task in "${CIRCUITS[@]}"; do
   TO_ARGS=()
   [ "$BROADCAST" -eq 1 ] && TO_ARGS=(--broadcast)
   set +e
-  TO_OUT=$(KEYSTORE_ACCOUNT="$ACCOUNT" bash "$ROOT/scripts/tapeout.sh" "$task" "${TO_ARGS[@]}" 2>&1)
+  TO_OUT=$(KEYSTORE_ACCOUNT="$ACCOUNT" AUTO_CONFIRM="$AUTO_CONFIRM" FORGE_PASSWORD_FILE="${FORGE_PASSWORD_FILE:-}" MAX_OKB_OVERRIDE="${MAX_OKB:-}" \
+    bash "$ROOT/scripts/tapeout.sh" "$task" "${TO_ARGS[@]}" 2>&1)
   TO_RC=$?
   set -e
   echo "$TO_OUT"
@@ -182,6 +261,7 @@ for task in "${CIRCUITS[@]}"; do
   STEP_OKB=$(echo "$TO_OUT" | grep -oE 'total=[0-9.]+ OKB' | grep -oE '[0-9.]+' | head -1)
   [ -z "$STEP_OKB" ] && STEP_OKB="0"
   echo "  before broadcast: circuit=$LABEL contract=$PROCESSOR chainId=$CHAIN_ID cost=$STEP_OKB OKB"
+  check_reference "$STEP_OKB" "$task" "tapeout($LABEL)"
   check_cap "$STEP_OKB" "tapeout($LABEL)"
 
   if [ "$BROADCAST" -eq 0 ]; then
@@ -202,7 +282,8 @@ for task in "${CIRCUITS[@]}"; do
 
   REG_ARGS=()
   [ "$BROADCAST" -eq 1 ] && REG_ARGS=(--broadcast)
-  KEYSTORE_ACCOUNT="$ACCOUNT" bash "$ROOT/scripts/register.sh" "$task" "$CIRCUIT_ID" "${REG_ARGS[@]}" \
+  FORGE_REGISTRY_ADDRESS="$FORGE_REGISTRY_ADDRESS" KEYSTORE_ACCOUNT="$ACCOUNT" AUTO_CONFIRM="$AUTO_CONFIRM" FORGE_PASSWORD_FILE="${FORGE_PASSWORD_FILE:-}" \
+    bash "$ROOT/scripts/register.sh" "$task" "$CIRCUIT_ID" "${REG_ARGS[@]}" \
     || { echo "ABORT: register.sh failed for $LABEL. Stopping the whole run." >&2; exit 1; }
 
   TAPEOUT_TX=$(tail -2 "$ROOT/docs/TAPEOUTS.md" | grep -oE 'tx=0x[0-9a-fA-F]+' | head -1 | cut -d= -f2 || true)

@@ -9,7 +9,7 @@ shift || true
 VARIANT="gc039"
 if [ "${1:-}" = "--variant" ]; then VARIANT="${2:-gc039}"; fi
 
-RPC="https://rpc.xlayer.tech"
+RPC="${FORGE_RPC_URL:-https://rpc.xlayer.tech}"  # override only for testing against a local fork
 CHAIN_ID=196
 PROCESSOR="0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355"      # OrderGuard (PHASE 7 default)
 PROCESSOR_NAME_EXPECTED="OrderGuard"
@@ -20,7 +20,7 @@ FUNDING_GC039_OKB=0.045517
 FUNDING_GC014_OKB=0.034285
 # Sanity ceiling on gas price (PHASE 8: real price observed 2026-10-19 was 20,000,001 wei/gas;
 # 10x that is already a very generous ceiling for an L2 that is normally this cheap).
-GAS_PRICE_CEILING_WEI=200000010
+GAS_PRICE_CEILING_WEI=${GAS_PRICE_CEILING_WEI:-200000010}  # override only for testing against a local fork, whose gas price can differ from real mainnet
 
 FOUNDRY_BIN="${FOUNDRY_BIN:-$HOME/.foundry/bin}"
 CAST="$FOUNDRY_BIN/cast"
@@ -66,7 +66,8 @@ BAL_WEI=$("$CAST" balance "$ADDR" --rpc-url "$RPC")
 NEEDED_OKB=$FUNDING_GC039_OKB
 [ "$VARIANT" = "gc014" ] && NEEDED_OKB=$FUNDING_GC014_OKB
 NEEDED_WEI=$(python3 -c "print(int($NEEDED_OKB * 1e18))")
-if [ "$BAL_WEI" -ge "$NEEDED_WEI" ]; then
+# python3, not bash [ ], since BAL_WEI can exceed bash's signed 64-bit int range for larger balances.
+if [ "$(python3 -c "print(1 if $BAL_WEI >= $NEEDED_WEI else 0)")" = "1" ]; then
   pass "wallet balance $(python3 -c "print($BAL_WEI/1e18)") OKB >= $NEEDED_OKB OKB needed"
 else
   fail "wallet balance $(python3 -c "print($BAL_WEI/1e18)") OKB < $NEEDED_OKB OKB needed"
