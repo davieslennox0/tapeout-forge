@@ -38,3 +38,12 @@ export const ORDERGUARD_TRANSISTORS = "0x8e71FC45ff47E5a7bA1ad2960793ebAdD2739D9
 export const ACTIVE_PROCESSOR = ORDERGUARD_PROCESSOR;
 export const ACTIVE_PROCESSOR_NAME = ORDERGUARD_PROCESSOR_NAME;
 export const ACTIVE_TRANSISTORS = ORDERGUARD_TRANSISTORS;
+
+// REAL deployed ForgeRegistry on X Layer mainnet. Deployed 2026-10-20, tx
+// 0xad495798672b4d9c7dc4b2bdce16b64c6795fb1fad89fac469f8be327c74cc66, receipt status=1
+// (VERIFIED: re-checked live via cast receipt + cast code, both confirm success - not assumed
+// from the broadcast output alone). Scripts must treat this as the live registry and never
+// redeploy while it has code - resuming a run with this unset was the real cause of the
+// go-live stall (go-live.sh never persisted the address after a real deploy; env-var-only
+// resume state does not survive a new shell invocation).
+export const FORGE_REGISTRY_ADDRESS = "0xAFDd108b0efCC1FF4d1e1d32579F80501774912d";
