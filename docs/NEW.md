@@ -231,3 +231,17 @@ n=4 exact library NOT built: per-class SAT too slow (75/3984 classes in 16 min, 
   (confirmed consistent by direct source inspection of both real files). All 6 pass. Full
   existing suite (68 tests: 60 vitest + 8 real Foundry) still green after all changes.
   docs/GO-LIVE.md and docs/USER-STEPS.md updated with the orchestrator as the recommended path.
+  CORRECTION to this same entry: step 4 (scripts/finalize-release.sh) was listed above as done
+  but had not actually been written yet at that commit - built and real-tested in a follow-up
+  commit instead of silently fixing the claim. Correctly refuses (exit 1) when any of the 5
+  required circuits isn't yet verified=PASS in docs/TAPEOUTS.md (tested for real, not
+  described). Its first secret-scan draft was ALSO a real bug, caught before relying on it:
+  a bare 64-hex-char regex matches this repo's own legitimate tx hashes and netlist/calldata
+  data (confirmed - it does, tried against this exact repo's history), which would have
+  permanently blocked the real visibility step on a false positive forever. Fixed to check
+  tracked key/env/keystore files, PEM headers, and key-shaped variable assignments specifically
+  - the same kind of check this project's earlier clean pre-publication audits actually used,
+  not a blanket hex-string scan. Re-tested both paths for real: refuses when circuits aren't
+  ready; with all 5 temporarily faked as verified (then immediately reverted - docs/TAPEOUTS.md
+  confirmed unchanged by git diff), reaches a clean secret-scan PASS and prints the correct
+  dry-run plan without ever running the real visibility command.
