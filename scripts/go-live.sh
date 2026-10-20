@@ -34,6 +34,11 @@ RPC="${FORGE_RPC_URL:-https://rpc.xlayer.tech}"  # override only for testing aga
 CHAIN_ID=196
 PROCESSOR="0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355"  # OrderGuard (PHASE 7 default)
 SPEND_CAP_OKB=0.05462   # config/cost.ts PHASE8_SPEND_CAP_OKB - keep in sync by hand
+# config/chains.ts FORGE_REGISTRY_ADDRESS - keep in sync by hand. Defaulting here (rather than
+# requiring the caller to export it) is the actual fix for the real stall this project hit: a
+# prior run deployed the registry for real, but the address only ever lived in that one shell's
+# env var, so a fresh invocation had no way to know it already existed and would have redeployed.
+FORGE_REGISTRY_ADDRESS="${FORGE_REGISTRY_ADDRESS:-0xAFDd108b0efCC1FF4d1e1d32579F80501774912d}"
 FOUNDRY_BIN="${FOUNDRY_BIN:-$HOME/.foundry/bin}"
 CAST="$FOUNDRY_BIN/cast"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -109,19 +114,43 @@ already_done() {
 }
 
 echo "--- step 1: ForgeRegistry ---"
-if [ -n "${FORGE_REGISTRY_ADDRESS:-}" ]; then
-  CODE=$("$CAST" code "$FORGE_REGISTRY_ADDRESS" --rpc-url "$RPC")
-  if [ "$CODE" = "0x" ]; then
-    echo "ABORT: configured FORGE_REGISTRY_ADDRESS has no code on-chain." >&2
-    exit 1
-  fi
-  echo "SKIP (resumed): FORGE_REGISTRY_ADDRESS=$FORGE_REGISTRY_ADDRESS already has real code."
+EXISTING_CODE=$("$CAST" code "$FORGE_REGISTRY_ADDRESS" --rpc-url "$RPC")
+if [ "$EXISTING_CODE" != "0x" ]; then
+  echo "SKIP (resumed): FORGE_REGISTRY_ADDRESS=$FORGE_REGISTRY_ADDRESS already has real code - not redeploying."
 else
   DEPLOY_ARGS=()
   [ "$BROADCAST" -eq 1 ] && DEPLOY_ARGS=(--broadcast)
-  KEYSTORE_ACCOUNT="$ACCOUNT" bash "$ROOT/scripts/deploy-registry.sh" "${DEPLOY_ARGS[@]}" \
-    || { echo "ABORT: deploy-registry.sh failed." >&2; exit 1; }
-  [ "$BROADCAST" -eq 0 ] && echo "  (dry-run only - no address recorded; after a real --broadcast success, export FORGE_REGISTRY_ADDRESS yourself per deploy-registry.sh's own closing note)"
+  set +e
+  DEPLOY_OUT=$(KEYSTORE_ACCOUNT="$ACCOUNT" bash "$ROOT/scripts/deploy-registry.sh" "${DEPLOY_ARGS[@]}" 2>&1)
+  DEPLOY_RC=$?
+  set -e
+  echo "$DEPLOY_OUT"
+  if [ "$DEPLOY_RC" -ne 0 ]; then
+    echo "ABORT: deploy-registry.sh failed." >&2
+    exit 1
+  fi
+  if [ "$BROADCAST" -eq 0 ]; then
+    echo "  (dry-run only - nothing deployed, no address to capture)"
+  else
+    NEW_ADDR=$(echo "$DEPLOY_OUT" | grep -oE 'Deployed to: 0x[0-9a-fA-F]{40}' | grep -oE '0x[0-9a-fA-F]{40}' | head -1)
+    NEW_TX=$(echo "$DEPLOY_OUT" | grep -oE 'Transaction hash: 0x[0-9a-fA-F]{64}' | grep -oE '0x[0-9a-fA-F]{64}' | head -1)
+    if [ -z "$NEW_ADDR" ] || [ -z "$NEW_TX" ]; then
+      echo "ABORT: deploy appeared to run but this script could not parse the deployed address/tx hash from its output. Stopping rather than guessing - check manually before re-running." >&2
+      exit 1
+    fi
+    # Never trust forge create's own stdout claim alone - independently re-check the real receipt
+    # and the real code, same discipline used everywhere else in this project.
+    STATUS=$("$CAST" receipt "$NEW_TX" --rpc-url "$RPC" --field status 2>/dev/null || echo "")
+    REAL_CODE=$("$CAST" code "$NEW_ADDR" --rpc-url "$RPC")
+    if { [ "$STATUS" != "1" ] && [ "$STATUS" != "0x1" ]; } || [ "$REAL_CODE" = "0x" ]; then
+      echo "ABORT: independent receipt/code check did not confirm a successful deployment (status=$STATUS). Stopping - do not trust forge's own stdout alone." >&2
+      exit 1
+    fi
+    echo "  independently verified: receipt status=1 and real code present at $NEW_ADDR"
+    FORGE_REGISTRY_ADDRESS="$NEW_ADDR"
+    sed -i "s|^export const FORGE_REGISTRY_ADDRESS = \".*\";.*|export const FORGE_REGISTRY_ADDRESS = \"$NEW_ADDR\"; // real deploy, tx $NEW_TX, captured automatically by go-live.sh after independent receipt verification|" "$ROOT/config/chains.ts"
+    echo "  recorded in config/chains.ts: FORGE_REGISTRY_ADDRESS=$NEW_ADDR"
+  fi
 fi
 echo
 
