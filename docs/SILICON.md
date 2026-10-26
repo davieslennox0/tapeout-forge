@@ -54,7 +54,7 @@ Real GitHub Actions run: https://github.com/davieslennox0/maj3-silicon-spike/act
 | Tiny Tapeout precheck (`precheck` job) | ✅ passed, 15/15 checks (Magic DRC, KLayout FEOL/BEOL/offgrid/pin-label/zero-area, pin/boundary/power-pin/layer/cell-name/urpm-nwell/analog-pin checks, Verilog syntax) |
 | Cell count | 34 cells, 173.9168 &micro;m&sup2; |
 | GDS sha256 | `1b499ee47227f969890580ff8f32fd288e2d41c0fe06f5067fe9749f18002e5e` (final `tt_submission` GDS of run 40368814040, 625,450 bytes) |
-| Overall workflow status | shows `failure` - but only because two UNRELATED jobs fail: `viewer` (GitHub Pages isn't enabled on that repo - a cosmetic visualization deploy, nothing to do with the design) and `gl_test` (needs a cocotb testbench that was never written for this spike repo). Neither affects the synthesis/DRC result above. |
+| Overall workflow status | shows `failure` - but only because UNRELATED checks fail (four, re-read 2026-10-26: the two below, plus the repo's separate `test` workflow, which runs the template's cocotb testbench and fails, and its `docs` workflow, which fails on `docs/info.md`, a template placeholder): `viewer` (GitHub Pages isn't enabled on that repo - a cosmetic visualization deploy, nothing to do with the design) and `gl_test` (needs a cocotb testbench that was never written for this spike repo). Neither affects the synthesis/DRC result above. |
 
 This is the second circuit independently confirmed through this exact real pipeline (the first,
 from the earlier feasibility spike, was the 6-NAND MAJ3). Both real; both still just "exported."
