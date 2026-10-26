@@ -49,7 +49,7 @@ keeps coming back as the task bank and the field of competing circuits change ov
 - DeWEB/TapeKit: researched (docs/DEWEB-RESEARCH.md), not deployed - optional per BUILD.md
   section 2 ("none required"). apps/web's static build already satisfies DeWEB's publish
   constraints so it could be published later without changes.
-- ForgeRegistry (contracts/ForgeRegistry.sol): built, ABI-verified against the real processor,
+- ForgeRegistry (contracts/src/ForgeRegistry.sol): built, ABI-verified against the real processor,
   tested on a live X Layer fork, then deployed to X Layer mainnet on 2026-10-20 (address under Addresses).
 - Silicon export (docs/SILICON.md): `forge export-silicon` generates a real Tiny Tapeout
   `ttsky`-shaped repo directory from a netlist. One real circuit (task 12, GC-012) has been run
@@ -93,8 +93,7 @@ keeps coming back as the task bank and the field of competing circuits change ov
 https://forgeout.xyz (also www.forgeout.xyz) is the one canonical address for the web app. It went live on
 2026-10-26 (HTTP 200, valid Let's Encrypt certificate, HTTP redirects to HTTPS) and serves the build with netlists
 revealed. Source:
-https://github.com/davieslennox0/tapeout-forge (currently private; the visibility change is also
-the owner's step), build with `pnpm --filter @forgeout/web build`, serve `apps/web/dist`.
+https://github.com/davieslennox0/tapeout-forge, build with `pnpm --filter @forgeout/web build`, serve `apps/web/dist`.
 
 ## Demo video
 
@@ -132,3 +131,6 @@ Not recorded yet, so there is no link to give. The 3-minute script and exact com
   immutable once taped out, but the evaluation logic is only as stable as that upgrade key; the on-chain "verified" results here describe the logic as of that date.
 - **Hackathon rules not re-verified today.** The rules in BUILD.md section 2 (event dates, required fields) come from the official page as read earlier; the
   page could not be re-fetched during the 2026-10-26 research, so any later change to dates or required fields is not reflected. Re-check before submitting.
+- **More registry abuse paths (audit, 2026-10-26).** A caller can freeze a spec hash by registering `gates = 0`, can claim `verified` through a processor of their own choosing or by understating `nIn`, and entries are not bound to the task specification. Anyone reading `best()` should accept only `processor == OrderGuard` and a trusted submitter. Full list: docs/LIMITS.md.
+- **Spend caps are weak.** The scripts are dry-run by default and keystore-only, but go-live's cap is checked after each step and ignores deploy and register gas; the wallet balance is the real cap (README, "Scripts that spend real funds").
+

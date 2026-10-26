@@ -74,6 +74,7 @@ if [ "$UNATTENDED" -eq 1 ]; then
     exit 1
   fi
   # Unattended's cap is the stricter of the two - never silently loosen the existing cap.
+  case "$MAX_OKB" in *[!0-9.]*|"."|*.*.*) echo "ABORT: --max-okb must be a plain decimal number, got '$MAX_OKB'." >&2; exit 1 ;; esac
   SPEND_CAP_OKB=$(python3 -c "print(min($SPEND_CAP_OKB, $MAX_OKB))")
 
   if [ -z "${FORGE_PASSWORD_FILE:-}" ]; then

@@ -23,6 +23,8 @@
 set -euo pipefail
 
 TASK="${1:?usage: tapeout.sh <task-id> [--broadcast]}"
+# Task ids are interpolated into python snippets below: accept digits only.
+case "$TASK" in ""|*[!0-9]*) echo "ABORT: <task-id> must be a positive integer, got '$TASK'." >&2; exit 1 ;; esac
 shift || true
 BROADCAST=0
 [ "${1:-}" = "--broadcast" ] && BROADCAST=1
@@ -39,6 +41,9 @@ PROTOCOL_FEE_WEI=660000000000000
 SPEND_CAP_OKB=0.05462  # PHASE 8: real OrderGuard-priced cap, was stale FAB_TST-era 0.31596
 # go-live.sh --unattended --max-okb passes a stricter override here too, so a single step can
 # never broadcast past it even before the orchestrator's own cumulative check runs.
+if [ -n "${MAX_OKB_OVERRIDE:-}" ]; then
+  case "$MAX_OKB_OVERRIDE" in *[!0-9.]*|""|.|*.*.*) echo "ABORT: MAX_OKB_OVERRIDE must be a plain decimal number, got '$MAX_OKB_OVERRIDE'." >&2; exit 1 ;; esac
+fi
 [ -n "${MAX_OKB_OVERRIDE:-}" ] && SPEND_CAP_OKB=$(python3 -c "print(min($SPEND_CAP_OKB, $MAX_OKB_OVERRIDE))")
 
 FOUNDRY_BIN="${FOUNDRY_BIN:-$HOME/.foundry/bin}"

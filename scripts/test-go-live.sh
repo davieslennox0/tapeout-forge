@@ -9,6 +9,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RPC="${FORGE_RPC_URL:-http://localhost:8549}"
 REGISTRY="${FORGE_REGISTRY_ADDRESS:?set FORGE_REGISTRY_ADDRESS to the fork-deployed registry first}"
 CAST="$HOME/.foundry/bin/cast"
+# These tests broadcast (to a FORK). Refuse to run unless the RPC is a local Anvil node, never a real chain.
+case "$RPC" in http://localhost:*|http://127.0.0.1:*) : ;; *) echo "ABORT: FORGE_RPC_URL must point at a local Anvil fork, got '$RPC'." >&2; exit 1 ;; esac
+"$CAST" rpc anvil_nodeInfo --rpc-url "$RPC" >/dev/null 2>&1 || { echo "ABORT: $RPC is not an Anvil node (anvil_nodeInfo failed). Start one with: anvil --fork-url https://rpc.xlayer.tech --port 8549" >&2; exit 1; }
 PASS=0
 FAIL=0
 # Tests 3/4/9/10/11 touch docs/TAPEOUTS.md (fork-only entries); always put the real ledger back.

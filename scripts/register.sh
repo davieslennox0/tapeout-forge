@@ -14,7 +14,10 @@
 set -euo pipefail
 
 TASK="${1:?usage: register.sh <task-id> <real-circuit-id> [--broadcast]}"
+# Task ids are interpolated into python snippets below: accept digits only.
+case "$TASK" in ""|*[!0-9]*) echo "ABORT: <task-id> must be a positive integer, got '$TASK'." >&2; exit 1 ;; esac
 CIRCUIT_ID="${2:?usage: register.sh <task-id> <real-circuit-id> [--broadcast]}"
+case "$CIRCUIT_ID" in ""|*[!0-9]*) echo "ABORT: <real-circuit-id> must be a non-negative integer, got '$CIRCUIT_ID'." >&2; exit 1 ;; esac
 shift 2 || true
 BROADCAST=0
 [ "${1:-}" = "--broadcast" ] && BROADCAST=1

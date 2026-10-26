@@ -1,5 +1,7 @@
 # Go-live: a single copy-paste runbook for the real owner
 
+> Written for the project owner's own wallet and keystore. Replace `<your-keystore-account>` with your own Foundry keystore account name and never run it with funds you cannot lose.
+
 Nothing in this repo has sent anything for real. Every command below needs the owner's own
 key and money. Read docs/COSTS.md first. For every command: the expected output shape is
 given, followed by the on-chain check to run, followed by what to do if it fails.
@@ -20,9 +22,9 @@ requirements (a real on-chain tape-out + registry entry), a separate goal.
 ## 1. Create a new wallet
 
 ```
-cast wallet import my-forgeout-key --interactive
+cast wallet import <your-keystore-account> --interactive
 ```
-**Expected output**: prompts for a password, then prints `my-forgeout-key` created at
+**Expected output**: prompts for a password, then prints `<your-keystore-account>` created at
 `~/.foundry/keystores/`. Never pass a private key as a command-line argument.
 
 **What could go wrong**: using an existing wallet with unusual on-chain code (a smart-contract
@@ -40,7 +42,7 @@ Two real, fork-tested options (docs/COSTS.md has the full breakdown):
 | A | GC-039 (nIn=6, 18.19M gas register — a real outlier) | 0.045517 OKB | **0.05462 OKB** |
 | B | GC-014 (nIn=4, cheap, real fork-tested: verified=true) | 0.034285 OKB | **0.0412 OKB** (use the same 0.05462 cap to be safe either way) |
 
-Get the address: `cast wallet address --account my-forgeout-key`. Send the funding amount to it.
+Get the address: `cast wallet address --account <your-keystore-account>`. Send the funding amount to it.
 
 **What could go wrong**: sending exactly the bare total leaves no room for real gas-price
 movement — fund the cap amount shown above, not the bare total.
@@ -51,8 +53,8 @@ movement — fund the cap amount shown above, not the bare total.
 for GC-012/037/050/014/046 in order, with the same per-step typed confirmation and a
 cumulative spend-cap check across the whole run (not just per-step). Dry-run by default:
 ```
-scripts/go-live.sh my-forgeout-key --variant gc014        # pure dry-run, nothing sent, safe to run anytime
-scripts/go-live.sh my-forgeout-key --variant gc014 --broadcast
+scripts/go-live.sh <your-keystore-account> --variant gc014        # pure dry-run, nothing sent, safe to run anytime
+scripts/go-live.sh <your-keystore-account> --variant gc014 --broadcast
 ```
 `--variant gc039` ADDS GC-039 at the end on top of the base 5 (it does not replace GC-014 -
 read the run's own printed NOTE if you use this flag). Resumable: re-running the same command
@@ -65,7 +67,7 @@ including the dry-run path's own real bug fix (`deploy-registry.sh` was calling 
 flag that this Foundry version's `forge create` doesn't have at all - fixed to use
 `cast estimate --create`, which needs no signer for the estimate itself).
 
-**What could go wrong**: `cast wallet address --account my-forgeout-key` (used internally for
+**What could go wrong**: `cast wallet address --account <your-keystore-account>` (used internally for
 the preflight step) needs your real keystore password, prompted interactively - run
 `go-live.sh` at a real terminal, not through any automation that can't answer that prompt. If
 you see "SKIP: could not decrypt keystore... non-interactively", that's this exact situation;
@@ -78,7 +80,7 @@ when you want to run one circuit at a time by hand instead.
 ## 3b. Preflight (run this before every broadcast, not just once)
 
 ```
-scripts/preflight.sh "$(cast wallet address --account my-forgeout-key)" --variant gc039
+scripts/preflight.sh "$(cast wallet address --account <your-keystore-account>)" --variant gc039
 ```
 **Expected output**: 6 lines of `PASS:`/`FAIL:`/`SKIP:`, ending in `ALL CHECKS PASS` (exit 0)
 or `ONE OR MORE CHECKS FAILED` (exit 1).
@@ -91,8 +93,8 @@ gas price spiked?) and fix that specific cause before re-running. Do not proceed
 ## 4. Deploy ForgeRegistry
 
 ```
-KEYSTORE_ACCOUNT=my-forgeout-key scripts/deploy-registry.sh          # dry run first
-KEYSTORE_ACCOUNT=my-forgeout-key scripts/deploy-registry.sh --broadcast
+KEYSTORE_ACCOUNT=<your-keystore-account> scripts/deploy-registry.sh          # dry run first
+KEYSTORE_ACCOUNT=<your-keystore-account> scripts/deploy-registry.sh --broadcast
 ```
 **Expected output**: a deployed contract address, real gas used (measured twice already in
 this project, both times exactly 460,958 gas).
@@ -111,8 +113,8 @@ caused by a broken `forge inspect` path) — do not trust a deploy you haven't p
 
 ```
 export FORGE_REGISTRY_ADDRESS=<from step 4>
-KEYSTORE_ACCOUNT=my-forgeout-key scripts/tapeout.sh 12           # dry run first
-KEYSTORE_ACCOUNT=my-forgeout-key scripts/tapeout.sh 12 --broadcast
+KEYSTORE_ACCOUNT=<your-keystore-account> scripts/tapeout.sh 12           # dry run first
+KEYSTORE_ACCOUNT=<your-keystore-account> scripts/tapeout.sh 12 --broadcast
 ```
 **Expected output**: real fee math printed, a typed-confirmation prompt (type the exact OKB /
 processor address / chain id back), then a real circuit id parsed from the receipt, appended
@@ -141,8 +143,8 @@ Same commands, substituting the task id (37, 50, 46). GC-046 has nIn=8.
 ## 8. Register each taped-out circuit (same order: 12, 37, 50, 46)
 
 ```
-KEYSTORE_ACCOUNT=my-forgeout-key scripts/register.sh 12 <circuit-id>
-KEYSTORE_ACCOUNT=my-forgeout-key scripts/register.sh 12 <circuit-id> --broadcast
+KEYSTORE_ACCOUNT=<your-keystore-account> scripts/register.sh 12 <circuit-id>
+KEYSTORE_ACCOUNT=<your-keystore-account> scripts/register.sh 12 <circuit-id> --broadcast
 ```
 **Expected output**: for GC-012/037/050 (nIn<=6): real `eval()` outputs fetched, registry
 verifies on-chain itself, real-tested `onchainVerified=true`. For GC-046 (nIn=8>6):

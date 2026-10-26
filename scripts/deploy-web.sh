@@ -6,9 +6,14 @@
 # Example: scripts/deploy-web.sh forgeout.xyz /var/www/forgeout /etc/caddy/Caddyfile
 set -euo pipefail
 
+# OPERATOR-ONLY: this edits the web server config of the machine it runs on (adds a Caddy site block, rsyncs
+# --delete into <webroot>, reloads Caddy). Do not run it on a host you do not operate.
 DOMAIN="${1:?usage: deploy-web.sh <domain> <webroot> [caddyfile]}"
 WEBROOT="${2:?usage: deploy-web.sh <domain> <webroot> [caddyfile]}"
 CADDYFILE="${3:-/etc/caddy/Caddyfile}"
+case "$DOMAIN" in ""|*[!a-z0-9.-]*|.*|*..*) echo "ABORT: domain must be lowercase letters, digits, dots and dashes, got '$DOMAIN'." >&2; exit 1 ;; esac
+case "$WEBROOT" in /var/www/?*) : ;; *) echo "ABORT: webroot must be a directory under /var/www/ (it is wiped with rsync --delete), got '$WEBROOT'." >&2; exit 1 ;; esac
+case "$WEBROOT" in *..*|*" "*) echo "ABORT: webroot must not contain '..' or spaces." >&2; exit 1 ;; esac
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"

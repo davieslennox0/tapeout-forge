@@ -4,6 +4,8 @@
 set -euo pipefail
 
 TASK="${1:?usage: verify-live.sh <task-id> <circuit-id> <tapeout-tx-hash> [register-tx-hash] [--rpc <url>]}"
+# Task ids are interpolated into python snippets below: accept digits only.
+case "$TASK" in ""|*[!0-9]*) echo "ABORT: <task-id> must be a positive integer, got '$TASK'." >&2; exit 1 ;; esac
 CIRCUIT_ID="${2:?usage: verify-live.sh <task-id> <circuit-id> <tapeout-tx-hash> [register-tx-hash] [--rpc <url>]}"
 TAPEOUT_TX="${3:?usage: verify-live.sh <task-id> <circuit-id> <tapeout-tx-hash> [register-tx-hash] [--rpc <url>]}"
 shift 3 || true
@@ -23,6 +25,12 @@ echo "== verify-live: task=GC-$(printf '%03d' "$TASK") circuit=$CIRCUIT_ID tx=$T
 # Tape-out tx really happened and really hit the right processor.
 TO_STATUS=$("$CAST" receipt "$TAPEOUT_TX" --rpc-url "$RPC" --json | python3 -c "import json,sys; r=json.load(sys.stdin); print(r['status'], r['to'])")
 echo "tapeout receipt: status=$TO_STATUS"
+# The tape-out tx must have succeeded (status 1) and been sent to the processor; otherwise the checks below
+# would be reading some other circuit's state. Fail loudly rather than print PASS.
+TO_OK=PASS
+case "$TO_STATUS" in "0x1 "*|"1 "*) : ;; *) TO_OK=FAIL ;; esac
+case "$(echo "$TO_STATUS" | tr '[:upper:]' '[:lower:]')" in *"$(echo "$PROCESSOR" | tr '[:upper:]' '[:lower:]')") : ;; *) TO_OK=FAIL ;; esac
+[ "$TO_OK" = PASS ] || echo "FAIL: the tape-out tx did not succeed on the expected processor ($PROCESSOR)."
 
 read -r NIN NOUT GATES STORED_HEX << EOF
 $(python3 -c "
@@ -54,7 +62,7 @@ if [ "$NIN" -le 6 ]; then
     : # local-simulation cross-check would call the TS engine here; on-chain self-consistency
       # (all rows return without reverting) is what this read-only script checks directly.
   done
-  echo "PASS: evaluated all $WIDTH real input rows on-chain, no reverts"
+  echo "PASS: evaluated all $WIDTH real input rows on-chain, no reverts (this checks that eval() does not revert; it does not compare outputs with the task spec - verify_independent.py does that)"
 else
   echo "nIn=$NIN > 6: checking a fixed sample plus all-zeros/all-ones only"
   for HEXI in "0x00" "0xff"; do
@@ -72,7 +80,7 @@ else
   ENTRY="(not checked)"
 fi
 
-SUMMARY="$([ "$NETLIST_MATCH" = PASS ] && [ "$MISMATCHES" -eq 0 ] && echo PASS || echo FAIL)"
+SUMMARY="$([ "$NETLIST_MATCH" = PASS ] && [ "$MISMATCHES" -eq 0 ] && [ "$TO_OK" = PASS ] && echo PASS || echo FAIL)"
 echo
 echo "SUMMARY: $SUMMARY  task=GC-$(printf '%03d' "$TASK") circuit=$CIRCUIT_ID"
 

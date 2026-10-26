@@ -160,3 +160,14 @@ describe("packages/silicon: structural Verilog generation + real iverilog equiva
     });
   });
 });
+
+describe("packages/silicon: project slug validation (becomes a Verilog identifier, YAML value and directory name)", () => {
+  it("accepts a normal slug and rejects path traversal, whitespace, uppercase and injection attempts", () => {
+    expect(toTtskyWrapper(MAJ3, "gc012").ok).toBe(true);
+    for (const bad of ["../evil", "a b", "A", "x;y", "x\ny", "", "a/b", "1abc", "x".repeat(60), "wire; initial $finish; //"]) {
+      const r = toTtskyWrapper(MAJ3, bad);
+      expect(r.ok, `slug ${JSON.stringify(bad)} must be rejected`).toBe(false);
+    }
+  });
+});
+

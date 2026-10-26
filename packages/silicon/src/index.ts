@@ -85,6 +85,11 @@ export function toStructuralVerilog(nl: Netlist, moduleName: string): ExportResu
 
 /** Tiny Tapeout ttsky top-module wrapper (BUILD.md 4.2): 8-bit ui_in/uo_out/uio_*, unused outputs tied low. */
 export function toTtskyWrapper(nl: Netlist, projectSlug: string): ExportResult {
+  // The slug becomes a Verilog identifier, a YAML value and (via the CLI) a directory name: restrict it to a
+  // safe lowercase identifier so a crafted --slug cannot escape the output directory or inject HDL/YAML.
+  if (!/^[a-z][a-z0-9_]{0,40}$/.test(projectSlug)) {
+    return { ok: false, reason: `invalid project slug '${projectSlug}': use 1-41 chars of [a-z0-9_], starting with a letter` };
+  }
   const coreName = `${projectSlug}_core`;
   const core = toStructuralVerilog(nl, coreName);
   if (!core.ok) return core;

@@ -71,4 +71,4 @@ completes on Tiny Tapeout. We do not claim a physical chip exists." (docs/SILICO
 
 Say: "Forgeout: infrastructure, not an app. The headline number is real, independently
 re-checked, and the honest gaps - no proven synthesis above 3 inputs, FabX's reward formula still
-has undefined terms - are documented, not hidden. Repo: github.com/davieslennox0/tapeout-forge (private until the owner changes its visibility)."
+has undefined terms - are documented, not hidden. Repo: github.com/davieslennox0/tapeout-forge."

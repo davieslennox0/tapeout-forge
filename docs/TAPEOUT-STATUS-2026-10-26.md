@@ -9,7 +9,7 @@ Scope: read-only. Primary sources are the live FabX API (`api.fabx.tech/v1/...`,
 | FabX task bank | 100 tasks (54 combinational, 46 sequential) | identical: 100 tasks, **no added or removed task, no differing field** versus our committed snapshot | `/v1/pod/taskbank` vs `docs/fabx-tasks.json` |
 | PoD global state | owner `0xfb77...5Ef8`, 7,200 $FAB/day | same owner; 100 tasks; 6,583 miners (6,470 verified); `currentRate` 8,333,333 (raw units; 7,200/day if 8 decimals, decimals not checked) | `/v1/pod/state` |
 | PoD processor multipliers | one processor (FAB_TST `0x87bf...f9a6`) at 6 | FAB_TST still 6; a second address `0x265E...3c` ("RefBench") at **0** | `/v1/pod/state`, `name()` read |
-| TapeOut on X Layer | 208 processors, 1,176 circuits (docs/RECON.md, 2026-10-16) | **396 processors, 11,340 circuits**, 5,198 mint txs, about 3,103 OKB total mint volume | `/v1/tapeout/registry-stats`, `/protocol-stats` |
+| TapeOut on X Layer | 208 processors, 1,176 circuits (RECON.md in the separate public nandout repository, 2026-10-16) | **396 processors, 11,340 circuits**, 5,198 mint txs, about 3,103 OKB total mint volume | `/v1/tapeout/registry-stats`, `/protocol-stats` |
 | Factory `0x1f09...0761` | `isSealed() == false` | still false; implementation `0xb41C1E7602EB5734BE2430b72178ccb814A5293d` (first time recorded, no earlier value to compare) | `isSealed()`, EIP-1967 slot |
 | OrderGuard (our processor) | cap 10,000, mint 0.0001 OKB, tape-out fee 0.0013, protocol fee 0.00066 | unchanged; 376 minted of 10,000 | direct reads |
 | Our registry | v1 only | v2 deployed 2026-10-26 (docs/TAPEOUTS.md) | chain |
