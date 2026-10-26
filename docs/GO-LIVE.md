@@ -178,10 +178,10 @@ Only after circuits are actually taped out (so publishing netlists can't let som
 front-run submitting them first):
 ```
 REVEAL_NETLISTS=true pnpm --filter @forgeout/web build
-scripts/deploy-web.sh forge.fanside.xyz /var/www/forge /etc/caddy/Caddyfile
+scripts/deploy-web.sh forgeout.xyz /var/www/forgeout /etc/caddy/Caddyfile
 ```
 **On-chain check**: none — this is a web deploy. Verify by fetching
-`https://forge.fanside.xyz` and confirming the gallery now shows real netlist/calldata buttons
+`https://forgeout.xyz` and confirming the gallery now shows real netlist/calldata buttons
 instead of "Published after tape-out."
 
 **What could go wrong**: forgetting the flag on a later rebuild silently re-redacts a
@@ -197,3 +197,7 @@ Do this last, right before or at submission time.
 **What could go wrong**: anything in git history stays recoverable even after a later delete —
 this repo's secrets history was already audited clean, but re-check for anything added
 locally since.
+
+## DNS for the web app
+
+Before the web deploy, `forgeout.xyz` (and `www.forgeout.xyz` if wanted) needs an A record pointing at the server's public IP. `scripts/deploy-web.sh` checks this and stops before reloading Caddy if the name does not resolve to the host. Check with `getent hosts forgeout.xyz`.

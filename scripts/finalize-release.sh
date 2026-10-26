@@ -64,7 +64,7 @@ if [ "$APPLY" -eq 0 ]; then
   echo
   echo "DRY RUN (no --apply given). Would now:"
   echo "  1. REVEAL_NETLISTS=true pnpm --filter @forgeout/web build"
-  echo "  2. scripts/deploy-web.sh forge.fanside.xyz /var/www/forge /etc/caddy/Caddyfile"
+  echo "  2. scripts/deploy-web.sh forgeout.xyz /var/www/forgeout /etc/caddy/Caddyfile"
   echo "  3. print (never run): gh repo edit davieslennox0/tapeout-forge --visibility public --accept-visibility-change-consequences"
   exit 0
 fi
@@ -76,7 +76,7 @@ cd "$ROOT"
 # re-run redact-gallery.mjs with the flag unset and overwrite this build with netlists stripped.
 export REVEAL_NETLISTS=true
 pnpm --filter @forgeout/web build
-bash scripts/deploy-web.sh forge.fanside.xyz /var/www/forge /etc/caddy/Caddyfile
+bash scripts/deploy-web.sh forgeout.xyz /var/www/forgeout /etc/caddy/Caddyfile
 
 echo
 echo "Web app redeployed with real netlists revealed. This script does NOT change repo"

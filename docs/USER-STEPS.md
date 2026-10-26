@@ -81,11 +81,11 @@ yourself before announcing it.
 
 ## 4a. apps/web is already live (plain static hosting, not DeWEB)
 
-Already done, not a remaining TODO: https://forge.fanside.xyz is live right now, serving the
+Already done, not a remaining TODO: https://forgeout.xyz is live right now, serving the
 same `apps/web/dist` build via a normal Caddy static site (not DeWEB — DeWEB is still the
 optional step 4 above). Repeatable/updatable with:
 ```
-scripts/deploy-web.sh forge.fanside.xyz /var/www/forge /etc/caddy/Caddyfile
+scripts/deploy-web.sh forgeout.xyz /var/www/forge /etc/caddy/Caddyfile
 ```
 This builds, backs up the Caddyfile, copies the build output, adds/validates the site block,
 checks DNS, and only then reloads Caddy — it stops before reloading if DNS doesn't resolve yet,
@@ -112,7 +112,7 @@ To reveal them (only do this AFTER a circuit is actually taped out, so publishin
 can no longer let someone else front-run submitting it first):
 ```
 REVEAL_NETLISTS=true pnpm --filter @forgeout/web build
-scripts/deploy-web.sh forge.fanside.xyz /var/www/forge /etc/caddy/Caddyfile
+scripts/deploy-web.sh forgeout.xyz /var/www/forge /etc/caddy/Caddyfile
 ```
 **What could go wrong**: forgetting REVEAL_NETLISTS=true on a later rebuild silently
 re-redacts a previously-revealed site (the flag is not persisted anywhere, it is read fresh at

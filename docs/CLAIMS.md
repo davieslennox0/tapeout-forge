@@ -79,8 +79,8 @@ Only work done after the event start on 2026-10-16 counts. The first commit in t
 |---|---|---|---|
 | The page runs in the browser; nothing is uploaded | web | SUPPORTED | `apps/web` is a static Vite build with no backend; `pnpm --filter @forgeout/web build` succeeds (2026-10-26). |
 | "Browse 22 verified circuits" | web | SUPPORTED | `gallery.json` has 22 rows. |
-| The gallery and registry panel show tape-out status for the five showcase circuits and describe the four test registrations | web | SUPPORTED | `gallery.json` carries `tapeout` for ids 12, 14, 37, 46, 50; built and checked 2026-10-26. The deployed copy at forge.fanside.xyz does not have this update yet (owner step). |
-| https://forge.fanside.xyz is reachable | SUBMISSION | SUPPORTED | HTTP 200 observed 2026-10-23; not re-checked 2026-10-26. |
+| The gallery and registry panel show tape-out status for the five showcase circuits and describe the four test registrations | web | SUPPORTED | `gallery.json` carries `tapeout` for ids 12, 14, 37, 46, 50; built and checked 2026-10-26. The deployed copy at forgeout.xyz does not have this update yet (owner step). |
+| https://forgeout.xyz is the canonical web address and is not live yet | SUBMISSION | SUPPORTED | `getent hosts forgeout.xyz` returns nothing and an HTTPS request fails (2026-10-26): no DNS record yet. The earlier host (a subdomain of another domain) is no longer cited anywhere. |
 | DeWEB was researched and not deployed | README, SUBMISSION | SUPPORTED | docs/DEWEB-RESEARCH.md; no publish transaction. |
 
 ## 5. Business claims

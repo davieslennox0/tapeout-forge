@@ -86,9 +86,9 @@ keeps coming back as the task bank and the field of competing circuits change ov
 
 ## Access link
 
-https://forge.fanside.xyz (HTTP 200 observed 2026-10-23). The build served there predates the
-2026-10-26 update to the gallery's tape-out status and the live registry panel; redeploying it
-is the owner's step (`scripts/finalize-release.sh --apply`, docs/GO-LIVE.md). Source:
+https://forgeout.xyz is the one canonical address for the web app. It is **not reachable yet** as of 2026-10-26:
+the domain has no DNS record pointing at the host, so deployment waits on that record (see docs/GO-LIVE.md).
+Once it resolves, the owner deploys with `scripts/finalize-release.sh --apply`. Source:
 https://github.com/davieslennox0/tapeout-forge (currently private; the visibility change is also
 the owner's step), build with `pnpm --filter @forgeout/web build`, serve `apps/web/dist`.
 

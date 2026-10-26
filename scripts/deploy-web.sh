@@ -3,7 +3,7 @@
 # No secrets in this file. Run it ON the target host (it does not SSH anywhere itself).
 #
 # Usage: scripts/deploy-web.sh <domain> <webroot> [caddyfile]
-# Example: scripts/deploy-web.sh forge.fanside.xyz /var/www/forge /etc/caddy/Caddyfile
+# Example: scripts/deploy-web.sh forgeout.xyz /var/www/forgeout /etc/caddy/Caddyfile
 set -euo pipefail
 
 DOMAIN="${1:?usage: deploy-web.sh <domain> <webroot> [caddyfile]}"
