@@ -8,7 +8,7 @@ Written 2026-10-26 (release prep). Scope: README.md, the web app (apps/web/index
 
 ## Provenance (post-2026-10-16 work)
 
-Only work done after the event start on 2026-10-16 counts. The first commit in this repository is `891b4eb` (2026-10-18), the repository was created 2026-10-18, and the last commit before this release prep is dated 2026-10-20; the release-prep and Phase 11 commits are dated 2026-10-26. Concepts carried over from the author's earlier project Nandout (github.com/davieslennox0/nandout, created 2026-10-11) are listed, with how each was re-implemented, in [docs/REUSED.md](REUSED.md). Nandout is also used as test input only in [docs/NANDOUT-CASE-STUDY.md](NANDOUT-CASE-STUDY.md); nothing of Nandout's is claimed as work done for this event.
+Only work done after the event start on 2026-10-16 counts. The first commit in this repository is `6abce68` (2026-10-18), the repository was created 2026-10-18, and the last commit before this release prep is dated 2026-10-20; the release-prep and Phase 11 commits are dated 2026-10-26. Concepts carried over from the author's earlier project Nandout (github.com/davieslennox0/nandout, created 2026-10-11) are listed, with how each was re-implemented, in [docs/REUSED.md](REUSED.md). Nandout is also used as test input only in [docs/NANDOUT-CASE-STUDY.md](NANDOUT-CASE-STUDY.md); nothing of Nandout's is claimed as work done for this event.
 
 ## Claims that were UNSUPPORTED and were fixed
 
