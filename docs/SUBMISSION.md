@@ -84,8 +84,8 @@ keeps coming back as the task bank and the field of competing circuits change ov
   | GC-046 | 10 | `0x5a358239bfa6f2fa6f190690197fc3396752231b6639bc9d32bf3094610013e5` | `0x3fdf3bad07b41b4bba4a8664a6b377ccb0d3bd4c645e35cd997cdcad102a6278` | attestation-only (8 inputs), not verified on-chain via processor.eval |
 
 - Silicon export GitHub Actions run (task 12, GC-012):
-  https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/40368814040 - real synthesis
-  + DRC pass, GDS sha256 `1b499ee47227f969890580ff8f32fd288e2d41c0fe06f5067fe9749f18002e5e`.
+  https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/40386501894 - real synthesis
+  + DRC pass, GDS sha256 `de5bf3943a43fb8cfefb3680b7e6bb77c690ff991314c7293dbd02bfed2a9097`.
   Status: exported only - not submitted to Tiny Tapeout, not fabricated, not paid for.
 
 ## Access link
@@ -114,9 +114,8 @@ Not recorded yet, so there is no link to give. The 3-minute script and exact com
   four tape-outs are verified on-chain via processor.eval.
 - **Silicon export: layout generated, not ordered.** Tapeout-ready export. We have not ordered
   fabrication. Ordering is a separate paid step that the circuit owner completes on Tiny Tapeout.
-  We do not claim a physical chip exists. The generated Tiny Tapeout project still fails four CI
-  checks (`viewer`: GitHub Pages is not enabled on that repo; `gl_test` and the separate `test` workflow: no cocotb testbench was
-  written for it; `docs`: `docs/info.md` is a template placeholder); the GDS build and the 15/15 precheck checks pass (docs/SILICON.md).
+  We do not claim a physical chip exists. The generated Tiny Tapeout project has one failing check, `viewer`
+  (GitHub Pages is not enabled on that repo); the GDS build, the 15/15 precheck checks, the gate-level test and the RTL test and docs workflows pass (docs/SILICON.md).
 - **Registry v1 depth.** Registry v1's entries registered before the 2026-10-26 fix (the five showcase circuits and test
   entry GC-007) carry `depth = 0`. v1 is immutable and prices depth 0 as 1 (`gates x 1` instead of `gates x depth^3`), so
   those entries cannot be corrected and misprice v1's "best" comparison. The five showcase circuits were therefore

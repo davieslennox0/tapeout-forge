@@ -158,7 +158,7 @@ One real circuit has been taken all the way through the actual CI pipeline: task
 the headline q=4.0 FabX beat), pushed to github.com/davieslennox0/maj3-silicon-spike (a repo
 this account owns) and run for real on GitHub Actions - synthesis and DRC both passed (15/15
 Tiny Tapeout precheck checks), producing a real 34-cell GDS
-(run: https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/40368814040). This is in
+(run: https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/40386501894). This is in
 addition to the earlier feasibility spike (the 6-NAND MAJ3).
 
 **Tapeout-ready export. We have not ordered fabrication. Ordering is a separate paid step that

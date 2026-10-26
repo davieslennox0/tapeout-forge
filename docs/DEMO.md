@@ -65,7 +65,7 @@ generated a real Tiny Tapeout repo, and we ran Tiny Tapeout's own CI on it for r
 and DRC both passed, 15 out of 15 checks, producing a real 34-cell GDS. Tapeout-ready export.
 We have not ordered fabrication. Ordering is a separate paid step that the circuit owner
 completes on Tiny Tapeout. We do not claim a physical chip exists." (docs/SILICON.md, run
-40368814040 on github.com/davieslennox0/maj3-silicon-spike)
+40386501894 on github.com/davieslennox0/maj3-silicon-spike)
 
 ## 2:50-3:00 - Close
 
