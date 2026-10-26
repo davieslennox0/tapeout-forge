@@ -120,7 +120,7 @@ async function main() {
   const lines: string[] = [];
   lines.push("# FabX replay (BUILD.md 1c.5 - rebuilt from REAL fetched vectors, not guessed gate names)");
   lines.push("");
-  lines.push(`Scope: the 46 tasks 1c.1 proved have a COMPLETE deterministic spec (comb, nIn<=8; see docs/VECTOR-SPEC-CHECK.md). The other 54 (44 wide-input comb + all 46 sequential) are excluded - sampled vectors only, fitting them would be overfitting per BUILD.md's explicit rule. Convention: WITH 2*nOut buffer gates and +2 depth (resolved from Task 8's real Cref=1728 in Phase 1b/1c). Every "beat" below is independently re-derived and bit-compared against the real fetched vectors before being counted, not trusted from optimize()'s own internal check.`);
+  lines.push(`Scope: the 46 tasks 1c.1 proved have a COMPLETE deterministic spec (comb, nIn<=8; see docs/VECTOR-SPEC-CHECK.md). The other 54 (8 wide-input combinational tasks with 9 to 18 inputs + all 46 sequential) are excluded - sampled vectors only, fitting them would be overfitting per BUILD.md's explicit rule. Convention: WITH 2*nOut buffer gates and +2 depth (resolved from Task 8's real Cref=1728 in Phase 1b/1c). Every "beat" below is independently re-derived and bit-compared against the real fetched vectors before being counted, not trusted from optimize()'s own internal check.`);
   lines.push("");
   lines.push(`**Counts**: beat ${beat.length} / tie ${tie.length} / lose ${lose.length} / skip ${skip.length} (of ${results.length} attempted). At the 4x q-cap: ${atCap.length}/${scored.length}. Median q: ${median?.toFixed(3)}.`);
   lines.push("");

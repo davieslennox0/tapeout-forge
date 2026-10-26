@@ -109,8 +109,8 @@ Not recorded yet, so there is no link to give. The 3-minute script and exact com
   of a latch on silicon. Sequential tasks are excluded from the replay.
 - **Synthesis gap:** no proven-exact synthesis above 3 inputs; 13 of the 46 complete-spec tasks
   still lose to the reference.
-- **Scope of the replay:** 54 sampled-only tasks (44 wide-input combinational plus all
-  sequential ones) are excluded, because fitting only sampled vectors would be overfitting.
+- **Scope of the replay:** 54 sampled-only tasks (8 wide-input combinational tasks with 9 to 18 inputs, plus all
+  46 sequential ones) are excluded, because fitting only sampled vectors would be overfitting.
 - **GC-046** (8 inputs) is attestation-only, not verified on-chain via processor.eval; the other
   four tape-outs are verified on-chain via processor.eval.
 - **Silicon export: layout generated, not ordered.** Tapeout-ready export. We have not ordered
@@ -127,3 +127,8 @@ Not recorded yet, so there is no link to give. The 3-minute script and exact com
 - **What "verified on-chain via processor.eval" means.** The registry checks that the caller's expected
   outputs equal the processor's `eval()` of that same circuit, for up to 6 inputs. It does not check the circuit
   against the task's specification; that comparison is done off-chain (`verify-live.sh`, the independent verifier).
+- **TapeOut factory not sealed.** Checked 2026-10-26: `isSealed()` is false on the factory (`0x1f09DAeFA827f02CBb40967cc91b259763760761`),
+  whose owner can upgrade `eval` for every processor (implementation at that time `0xb41C1E7602EB5734BE2430b72178ccb814A5293d`). Netlists are
+  immutable once taped out, but the evaluation logic is only as stable as that upgrade key; the on-chain "verified" results here describe the logic as of that date.
+- **Hackathon rules not re-verified today.** The rules in BUILD.md section 2 (event dates, required fields) come from the official page as read earlier; the
+  page could not be re-fetched during the 2026-10-26 research, so any later change to dates or required fields is not reflected. Re-check before submitting.
