@@ -44,6 +44,11 @@ SPEND_CAP_OKB=0.05462  # PHASE 8: real OrderGuard-priced cap, was stale FAB_TST-
 FOUNDRY_BIN="${FOUNDRY_BIN:-$HOME/.foundry/bin}"
 CAST="$FOUNDRY_BIN/cast"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=scripts/lib-tx.sh
+. "$ROOT/scripts/lib-tx.sh"
+# Event topics used to find a tx on-chain when the RPC returns a null/errored reply (see lib-tx.sh).
+TRANSFER_SINGLE_T0="0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62"   # transistor mint/burn
+TAPEOUT_EVENT_T0="0xc11215e417669c143c8a07aeb778034c0a0a85ebdf305d64a629b19a7a9ce031"       # processor tape-out: topics[1]=circuitId, topics[2]=sender
 
 # Poll a real receipt until status=1, or abort after a timeout. Used as a defensive check that
 # a send genuinely confirmed before relying on its effects - not the primary nonce fix (that's
@@ -164,6 +169,8 @@ else
   echo "  (could not resolve deployer address non-interactively - skipping existing-balance check, minting the full worst-case amount)"
 fi
 
+FROM_BLOCK=$("$CAST" block-number --rpc-url "$RPC" 2>/dev/null || echo 0)
+FROM_BLOCK=$(( FROM_BLOCK > 5 ? FROM_BLOCK - 5 : 0 ))   # small margin: never start the event scan after our own send
 START_NONCE=""
 [ -n "$DEPLOYER" ] && START_NONCE=$("$CAST" nonce "$DEPLOYER" --rpc-url "$RPC" 2>/dev/null || echo "")
 
@@ -179,30 +186,38 @@ else
   MINT_NONCE_ARGS=()
   [ -n "$START_NONCE" ] && MINT_NONCE_ARGS=(--nonce "$START_NONCE")
   echo "Minting transistors..."
-  MINT_TX=$("$CAST" send "$TRANSISTORS" "mint(uint256,uint256)" 0 "$MINT_NEEDED" --value "$MINT_COST_WEI_ACTUAL" --rpc-url "$RPC" "${SIGNER_ARGS[@]}" "${MINT_NONCE_ARGS[@]}" --json)
-  echo "$MINT_TX"
-  MINT_STATUS=$(echo "$MINT_TX" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status','?'))")
-  if [ "$MINT_STATUS" != "0x1" ] && [ "$MINT_STATUS" != "1" ]; then
-    echo "ABORT: mint tx did not report status=1 (got '$MINT_STATUS'). Stopping before tape-out." >&2
-    exit 1
-  fi
-  MINT_TXHASH=$(echo "$MINT_TX" | python3 -c "import json,sys; print(json.load(sys.stdin)['transactionHash'])")
-  wait_for_receipt "$MINT_TXHASH"
+  SENDER_TOPIC="0x000000000000000000000000$(echo "${DEPLOYER#0x}" | tr 'A-F' 'a-f')"
+  MINT_FILTERS=("3=$SENDER_TOPIC" "2=0x0000000000000000000000000000000000000000000000000000000000000000")
+  [ -z "$DEPLOYER" ] && MINT_FILTERS=("9=none")   # degraded mode: no sender to match, so never "recover" someone else's event
+  MINT_OUT=$(send_and_confirm mint "$DEPLOYER" "$START_NONCE" "$TRANSISTORS" "$TRANSFER_SINGLE_T0" "$FROM_BLOCK" "${MINT_FILTERS[@]}" -- \
+    "$TRANSISTORS" "mint(uint256,uint256)" 0 "$MINT_NEEDED" --value "$MINT_COST_WEI_ACTUAL" "${SIGNER_ARGS[@]}" "${MINT_NONCE_ARGS[@]}") \
+    || { echo "ABORT: mint did not confirm. Stopping before tape-out." >&2; exit 1; }
+  echo "mint confirmed: ${MINT_OUT%% *}"
   if [ -n "$START_NONCE" ]; then
     NEXT_NONCE_ARGS=(--nonce "$((START_NONCE + 1))")
   fi
 fi
 
 echo "Taping out..."
-TO_TX=$("$CAST" send "$PROCESSOR" "tapeout(bytes,uint32,uint32)" "$NL" "$NIN" "$NOUT" --value "$TAPEOUT_FEE_WEI" --rpc-url "$RPC" "${SIGNER_ARGS[@]}" "${NEXT_NONCE_ARGS[@]}" --json)
-echo "$TO_TX"
-TXHASH=$(echo "$TO_TX" | python3 -c "import json,sys; print(json.load(sys.stdin)['transactionHash'])")
+SENDER_TOPIC="0x000000000000000000000000$(echo "${DEPLOYER#0x}" | tr 'A-F' 'a-f')"
+TO_FILTERS=("2=$SENDER_TOPIC")
+[ -z "$DEPLOYER" ] && TO_FILTERS=("9=none")
+TO_OUT=$(send_and_confirm tapeout "$DEPLOYER" "${NEXT_NONCE_ARGS[1]:-$START_NONCE}" "$PROCESSOR" "$TAPEOUT_EVENT_T0" "$FROM_BLOCK" "${TO_FILTERS[@]}" -- \
+  "$PROCESSOR" "tapeout(bytes,uint32,uint32)" "$NL" "$NIN" "$NOUT" --value "$TAPEOUT_FEE_WEI" "${SIGNER_ARGS[@]}" "${NEXT_NONCE_ARGS[@]}") \
+  || { echo "ABORT: tape-out did not confirm (see the message above for whether a retry is safe)." >&2; exit 1; }
+TXHASH="${TO_OUT%% *}"
+RECOVERED_TOPIC1=""
+[ "$TO_OUT" != "$TXHASH" ] && RECOVERED_TOPIC1="${TO_OUT#* }"
+echo "tape-out tx: $TXHASH"
 
 echo
 echo "Parsing circuit id from the real receipt (event topic0 0xc11215e4..., confirmed live on a"
 echo "fork test: topics[1]=circuitId, topics[2]=sender, data word[0]=gates):"
-RECEIPT_JSON=$("$CAST" receipt "$TXHASH" --rpc-url "$RPC" --json)
-CIRCUIT_ID=$(echo "$RECEIPT_JSON" | python3 -c "
+CIRCUIT_ID=""
+for _try in 1 2 3 4 5 6 7 8 9 10; do
+  RECEIPT_JSON=$(tx_receipt_json "$TXHASH" || true)
+  if [ -n "$RECEIPT_JSON" ]; then
+    CIRCUIT_ID=$(echo "$RECEIPT_JSON" | python3 -c "
 import json, sys
 r = json.load(sys.stdin)
 for log in r['logs']:
@@ -210,6 +225,12 @@ for log in r['logs']:
         print(int(log['topics'][1], 16))
         break
 " )
+    break
+  fi
+  sleep "${TX_POLL_SLEEP:-2}"
+done
+# Receipt reads kept returning null but the tx was found by its event: that event carries the circuit id.
+if [ -z "$CIRCUIT_ID" ] && [ -n "$RECOVERED_TOPIC1" ]; then CIRCUIT_ID=$((RECOVERED_TOPIC1)); fi
 if [ -z "$CIRCUIT_ID" ]; then
   echo "Could not find the expected event in this receipt - printing it raw instead, read it yourself:"
   echo "$RECEIPT_JSON"
