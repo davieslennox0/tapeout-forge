@@ -253,3 +253,9 @@ echo
 echo "== $PASS passed, $FAIL failed =="
 [ "$FAIL" -eq 0 ]
 
+echo "== test 13: --unattended with no FORGE_PASSWORD_FILE set aborts (there is no default password location) =="
+if OUT=$(env -u FORGE_PASSWORD_FILE FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/go-live.sh" my-forgeout-key --variant gc014 --broadcast --unattended --max-okb 1.0 2>&1); then
+  bad "ran --unattended without FORGE_PASSWORD_FILE"
+else
+  echo "$OUT" | grep -q "requires FORGE_PASSWORD_FILE" && ok "aborts when FORGE_PASSWORD_FILE is unset" || bad "aborted but not for the right reason: $OUT"
+fi

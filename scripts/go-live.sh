@@ -10,7 +10,7 @@
 #
 # --unattended replaces the human-typed broadcast confirmations with automated checks (chain id,
 # contract identity, cost-within-10%-of-reference, spend cap, verify-live after every circuit).
-# It requires --max-okb and a FORGE_PASSWORD_FILE (default ~/.forgeout/pw) that: exists, is mode
+# It requires --max-okb and a FORGE_PASSWORD_FILE (required, no default) that: exists, is mode
 # 600 exactly, and is NOT inside this repo. The password file's PATH is passed to cast's own
 # --password-file flag by the underlying scripts - this script never opens, reads, or echoes it.
 #
@@ -76,7 +76,10 @@ if [ "$UNATTENDED" -eq 1 ]; then
   # Unattended's cap is the stricter of the two - never silently loosen the existing cap.
   SPEND_CAP_OKB=$(python3 -c "print(min($SPEND_CAP_OKB, $MAX_OKB))")
 
-  FORGE_PASSWORD_FILE="${FORGE_PASSWORD_FILE:-$HOME/.forgeout/pw}"
+  if [ -z "${FORGE_PASSWORD_FILE:-}" ]; then
+    echo "ABORT: --unattended requires FORGE_PASSWORD_FILE to be set to a mode-600 password file outside this repo (there is no default location)." >&2
+    exit 1
+  fi
   if [ ! -f "$FORGE_PASSWORD_FILE" ]; then
     echo "ABORT: FORGE_PASSWORD_FILE ($FORGE_PASSWORD_FILE) does not exist." >&2
     exit 1
