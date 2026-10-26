@@ -60,7 +60,7 @@ FabX's winner-take-the-bonus scoring means a beaten incumbent has to find out fa
 
 - **Core engine** (packages/core): netlist parse/serialize, exhaustive + SAT equivalence
   checking, exact synthesis (proven minimal, nIn<=3), ABC-assisted optimization, cost/FabX C+q
-  reporting. 62 vitest tests (core 43, chain 8, silicon 8, cli 3) and 8 Foundry tests (run against an X Layer fork) pass as of 2026-10-26; a fuzz test caught a real `optimize()` bug on 2026-10-18 (docs/NEW.md).
+  reporting. 63 vitest tests (core 43, chain 8, silicon 9, cli 3) and 8 Foundry tests (run against an X Layer fork) pass as of 2026-10-26; a fuzz test caught a real `optimize()` bug on 2026-10-18 (docs/NEW.md).
 - **Real FabX replay** (docs/FABX-REPLAY.md): across the 46/100 FabX tasks that have a complete,
   verifiable spec (the other 54 are sampled-only - fitting them would be overfitting, so they
   are excluded, not guessed at): **beat 22, tie 11, lose 13**. Every beat independently
