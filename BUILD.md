@@ -370,7 +370,7 @@ RULES unchanged: read-only on the real chain, simulation only on an anvil fork, 
 7.6 Gated merge to main (tests green, CI green, no key material), then print the exact next commands for the owner and the 3 biggest risks. STOP.
 
 ## PHASE 7 RESULT (recorded)
-- Final circuits GC-012/037/050/014/046 (as tapped out; GC-039 was planned but not tapped out): 0.0447 OKB fees, 349 transistors (9,958 headroom), fork-tested mint -> tape-out -> register. 4 reach verified=true on-chain, GC-046 (8 inputs) is attestation-only. Funding target in docs 0.05364 OKB (total+20%), gas inclusion UNVERIFIED.
+- Final circuits GC-012/037/050/014/046 (as tapped out; GC-039 was planned but not tapped out): 0.0447 OKB fees, 349 transistors (9,958 headroom), fork-tested mint -> tape-out -> register. 4 reach verified=true on-chain, GC-046 is attestation-only (8 inputs), not verified on-chain via processor.eval. Funding target in docs 0.05364 OKB (total+20%), gas inclusion UNVERIFIED.
 - GC-039 register costs 18.19M gas (outlier; not tapped out). These circuits are on OrderGuard: NOT FabX-PoD-eligible; never imply PoD rewards.
 
 ## PHASE 8: pre-flight for the owner's broadcast (then STOP)
