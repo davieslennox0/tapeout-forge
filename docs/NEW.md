@@ -141,7 +141,7 @@ n=4 exact library NOT built: per-class SAT too slow (75/3984 classes in 16 min, 
   working info.yaml, then fixed and re-verified, not guessed from the spec alone.
   4.5 Real push, real CI run: task 12 (GC-012, the headline q=4.0 FabX beat) exported and pushed
   to github.com/davieslennox0/maj3-silicon-spike (owned repo, same safe pattern as the earlier
-  spike). Run https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/39150702389:
+  spike). Run https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/39150702389 (superseded 2026-10-26 by run 40368814040 after the spike history rewrite):
   `gds` and `precheck` jobs both passed for real, 34 cells / 173.9168 um^2, GDS sha256
   `1857e6b1325f19d65bd4647d9ca18c166d2c0ea3dc88464a21ad59729eadf256` (downloaded and hashed
   directly, not copied from a log). This is a second real circuit through the real pipeline,
