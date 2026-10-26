@@ -27,10 +27,12 @@ mkdir -p "$WEBROOT"
 rsync -a --delete "$REPO_ROOT/apps/web/dist/" "$WEBROOT/"
 
 echo "== 4. add site block (only if not already present) =="
-if ! grep -q "^${DOMAIN} {" "$CADDYFILE"; then
+# Idempotent: skip if any site block already starts with this domain (bare, or as the first of "a, b {").
+# www is served too, so a bare-domain A record and a www A record both work.
+if ! grep -qE "^${DOMAIN}( \{|,)" "$CADDYFILE"; then
   cat >> "$CADDYFILE" << EOF
 
-${DOMAIN} {
+${DOMAIN}, www.${DOMAIN} {
 	root * ${WEBROOT}
 	encode zstd gzip
 	file_server
