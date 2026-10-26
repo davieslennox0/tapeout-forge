@@ -217,7 +217,7 @@ $('verified-intro').textContent =
 renderPager();
 renderGallery();
 
-// Registry — ForgeRegistry is live on X Layer (chain 196); five circuits are registered (docs/TAPEOUTS.md).
+// Registry — ForgeRegistry is live on X Layer (chain 196); five showcase circuits plus four test registrations (docs/TAPEOUTS.md).
 const REGISTRY_ADDRESS: string | null = '0xAFDd108b0efCC1FF4d1e1d32579F80501774912d';
 const TAPED_OUT = (gallery as any[]).filter((r) => r.tapeout);
 $('registry-panel').innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px">
@@ -225,5 +225,5 @@ $('registry-panel').innerHTML = `<div style="display:flex;flex-wrap:wrap;align-i
        <span class="badge">Live on X Layer</span>
      </div>
      <p class="muted" style="margin:0 0 18px">Registry at <a class="mono" href="https://www.oklink.com/xlayer/address/${REGISTRY_ADDRESS}" style="color:inherit">${REGISTRY_ADDRESS}</a>. An ownerless contract keeps the best verified circuit for each function. Anyone can replace it with a strictly better one. In-page lookup is not wired up yet; read it with <code>best(bytes32)</code>.</p>
-     <p class="muted" style="margin:0 0 8px">Five circuits are registered on the OrderGuard processor:</p>
+     <p class="muted" style="margin:0 0 8px">Five showcase circuits (ids 6 to 10) are registered on the OrderGuard processor, plus four additional test registrations (ids 11 to 14, separate wallet), nine entries in total. The showcase circuits:</p>
      <ul style="margin:0;padding-left:20px">${TAPED_OUT.map((r) => `<li class="mono" style="font-size:14px">GC-${String(r.id).padStart(3, '0')} · circuit #${r.tapeout.circuitId} · ${r.tapeout.status}</li>`).join('')}</ul>`;

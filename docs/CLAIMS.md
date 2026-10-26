@@ -20,7 +20,7 @@ Only work done after the event start on 2026-10-16 counts. The first commit in t
 | U4 | Web page | "Latches only with a documented reset convention" (silicon export) | docs/SILICON.md says LATCH export is refused. | Web text now says circuits with latches are refused. |
 | U5 | Web page | "ABC and rewriting for larger functions" in a browser tool | ABC does not run in the browser build. | Text now says ABC runs in the CLI only. |
 | U6 | README | "50 tests passing, including a fuzz suite that has caught 2 real bugs" | Stale count; only one fuzz-caught bug is documented (docs/NEW.md 2026-10-18). | Now "62 vitest + 8 Foundry tests"; one bug stated. |
-| U7 | README, web, SUBMISSION, DEMO | Registry "not deployed", tape-outs "not yet done" | Stale: the registry is live and five circuits are tapped out. | Updated to the facts in section 1 below. |
+| U7 | README, web, SUBMISSION, DEMO | Registry "not deployed", tape-outs "not yet done" | Stale: the registry is live; five showcase circuits (ids 6 to 10) and four additional test registrations (ids 11 to 14) are on-chain. | Updated to the facts in section 1 below. |
 | U8 | docs/DEMO.md | "it's not done yet" (tape-out) | Stale, same reason. | Reworded. |
 | U9 | README, SUBMISSION | Users "reached via" Discord; "Why they'd pay" stated as fact | No outreach or paying users exist; these are plans and hypotheses. | Now "to be reached… no outreach is claimed yet" and "hypothesis, UNVALIDATED". |
 | U10 | docs/DEMO.md | Repo link presented as available | The repo is currently private. | Note added. |
@@ -32,13 +32,16 @@ Only work done after the event start on 2026-10-16 counts. The first commit in t
 | Claim | Where | Status | Evidence |
 |---|---|---|---|
 | ForgeRegistry is deployed on X Layer at `0xAFDd108b0efCC1FF4d1e1d32579F80501774912d` | README, web, SUBMISSION, DEMO | SUPPORTED | Deploy tx `0xad495798672b4d9c7dc4b2bdce16b64c6795fb1fad89fac469f8be327c74cc66` (status 1, docs/TAPEOUTS.md header). Re-run 2026-10-26: `scripts/verify-live.sh` read the registry entry for each circuit. |
-| Five circuits are tapped out and registered: GC-012, GC-037, GC-050, GC-014, GC-046 (circuit ids 6 to 10) | README, web, SUBMISSION, DEMO | SUPPORTED | docs/TAPEOUTS.md (tape-out and register tx hashes). Re-run 2026-10-26: `verify-live.sh` on all five, receipts status 1 on the OrderGuard processor, `SUMMARY: PASS` each. |
-| All five registry entries have submitter `0x1F4d4B97d9cFD57b2F5CED5b87249ECCa95920E5` | SUBMISSION | SUPPORTED | Same `verify-live.sh` output (registry entry field). |
+| Five showcase circuits are tapped out and registered: GC-012, GC-037, GC-050, GC-014, GC-046 (circuit ids 6 to 10); four additional test registrations (ids 11 to 14, GC-007, GC-016, GC-013, GC-022) exist from a separate wallet, nine registry entries in total | README, web, SUBMISSION, DEMO | SUPPORTED | docs/TAPEOUTS.md (tape-out and register tx hashes). Re-run 2026-10-26: `verify-live.sh` on all five, receipts status 1 on the OrderGuard processor, `SUMMARY: PASS` each. |
+| The five showcase registry entries have submitter `0x1F4d4B97d9cFD57b2F5CED5b87249ECCa95920E5` | SUBMISSION | SUPPORTED | Same `verify-live.sh` output (registry entry field). |
 | GC-012, GC-037, GC-050, GC-014 are "verified on-chain via processor.eval" | README, web, SUBMISSION, DEMO | SUPPORTED | Registry entries show `verified = true`; on-chain netlist bytes equal our stored hex; all 16 input rows evaluated on-chain with no reverts (`verify-live.sh`). |
 | GC-046 is "attestation-only (8 inputs), not verified on-chain via processor.eval" | same | SUPPORTED | Registry entry shows `verified = false` (empty expected outputs by design, contracts/src/ForgeRegistry.sol). |
 | GC-039 was not tapped out | README, SUBMISSION, docs | SUPPORTED | Not in docs/TAPEOUTS.md. |
 | No FabX PoD or reward claim for these circuits | README, SUBMISSION | SUPPORTED | They are on OrderGuard (`0x57F3…a355`), not a FabX PoD processor (BUILD.md section 7). No reward amount appears anywhere. |
-| The other 17 gallery circuits are not tapped out | SUBMISSION, DEMO | SUPPORTED | docs/TAPEOUTS.md lists five only. |
+| The other 13 gallery circuits are not tapped out | SUBMISSION, DEMO | SUPPORTED | docs/TAPEOUTS.md lists nine (five showcase plus four test) of the 22. |
+| Additional test registrations 11 to 14: submitter `0x155d…b171`, all mint, tape-out and register tx hashes | SUBMISSION, DEMO, README | SUPPORTED | docs/TAPEOUTS.md (separate section), docs/ONCHAIN-TESTS.md; each checked with `verify-live.sh` (`SUMMARY: PASS`) on 2026-10-26. |
+| Six registry entries (ids 6 to 11) have `depth = 0`, are immutable, and misprice the registry's best comparison | SUBMISSION, web | SUPPORTED | `best(bytes32)` reads on 2026-10-26: depth 0 for GC-012, 037, 050, 014, 046, 007; `contracts/src/ForgeRegistry.sol` `cost()` prices depth 0 as 1. |
+| "Verified on-chain via processor.eval" = the registry compared caller-supplied outputs with the processor's eval of the same circuit (up to 6 inputs); it does not compare against the task spec | SUBMISSION, web | SUPPORTED | `ForgeRegistry.submit()` source; `register.sh` fetches the expected outputs from the same circuit's `eval()`; the spec comparison is `verify-live.sh` and `verify_independent.py`. |
 | ForgeRegistry is ownerless | README, web | SUPPORTED | contracts/src/ForgeRegistry.sol header (no admin, no pause); 8 Foundry tests pass on a fork, re-run 2026-10-26. |
 | Registry gas measured for n = 3 to 6; block gas limit 210,000,000 | README, web | SUPPORTED | `forge test --fork-url https://rpc.xlayer.tech`: `test_GasMeasurement_n3` to `n6` pass (docs/GAS-VERIFY.md). `cast block latest` gasLimit = 210000000, re-run 2026-10-26. |
 
@@ -76,7 +79,7 @@ Only work done after the event start on 2026-10-16 counts. The first commit in t
 |---|---|---|---|
 | The page runs in the browser; nothing is uploaded | web | SUPPORTED | `apps/web` is a static Vite build with no backend; `pnpm --filter @forgeout/web build` succeeds (2026-10-26). |
 | "Browse 22 verified circuits" | web | SUPPORTED | `gallery.json` has 22 rows. |
-| The gallery and registry panel show tape-out status for the five circuits | web | SUPPORTED | `gallery.json` carries `tapeout` for ids 12, 14, 37, 46, 50; built and checked 2026-10-26. The deployed copy at forge.fanside.xyz does not have this update yet (owner step). |
+| The gallery and registry panel show tape-out status for the five showcase circuits and describe the four test registrations | web | SUPPORTED | `gallery.json` carries `tapeout` for ids 12, 14, 37, 46, 50; built and checked 2026-10-26. The deployed copy at forge.fanside.xyz does not have this update yet (owner step). |
 | https://forge.fanside.xyz is reachable | SUBMISSION | SUPPORTED | HTTP 200 observed 2026-10-23; not re-checked 2026-10-26. |
 | DeWEB was researched and not deployed | README, SUBMISSION | SUPPORTED | docs/DEWEB-RESEARCH.md; no publish transaction. |
 

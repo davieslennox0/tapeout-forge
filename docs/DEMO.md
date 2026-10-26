@@ -37,7 +37,7 @@ Screen: browser, apps/web (built: `pnpm --filter @forgeout/web build`, served lo
   "verified: true (method=...)" line, the downloadable netlist hex. Say: "This whole thing runs
   in your browser - nothing is sent anywhere. No ABC in this build, by design; the CLI is where
   that runs."
-- Scroll to the registry section. Point at the registry address and the five registered circuits. Say: "This is live on X Layer. Four are verified on-chain through the processor's own eval; GC-046 has 8 inputs, so it is attestation-only and the page says so."
+- Scroll to the registry section. Point at the registry address, the five showcase circuits and the four additional test registrations. Say: "This is live on X Layer. Four are verified on-chain through the processor's own eval; GC-046 has 8 inputs, so it is attestation-only and the page says so."
 
 ## 1:50-2:25 - Real on-chain reads (not a mock)
 
@@ -56,8 +56,8 @@ Screen: terminal.
 forge calldata netlist.hex --nin 4 --nout 1
 ```
 Say: "This builds the real tapeout() calldata against the real fee schedule on X Layer - real
-ABI, real fees, verified live on a fork. It never sends anything. Five circuits (GC-012, GC-037, GC-050, GC-014, GC-046) are already tapped out and registered by the
-owner with their own key - docs/TAPEOUTS.md has every transaction. The other 17 gallery circuits are
+ABI, real fees, verified live on a fork. It never sends anything. Five showcase circuits (GC-012, GC-037, GC-050, GC-014, GC-046) are already tapped out and registered by the
+owner with their own key - docs/TAPEOUTS.md has every transaction. The other 13 gallery circuits are
 not tapped out. We'd rather say that than overstate it."
 
 Optional, if time remains: "We went one step further for one circuit - `forge export-silicon`

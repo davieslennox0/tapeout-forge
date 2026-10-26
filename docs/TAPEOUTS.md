@@ -15,3 +15,16 @@ Submitter (all 5): 0x1F4d4B97d9cFD57b2F5CED5b87249ECCa95920E5.
 - 2026-10-20: GC-050 | processor=0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355 | circuitId=8 | tapeoutTx=0x247e6c4ccce7d764cc27f847fc127288cc7f77ec1856c88550a893967bbf9235 | registerTx=0x7c9def59a11af8f1175ec9b4c16e752580b69229c2b314d19f8d3749da7c66dd | verified on-chain via processor.eval
 - 2026-10-20: GC-014 | processor=0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355 | circuitId=9 | tapeoutTx=0xfa38b3d7a5b4f91fbfc74513feb4e68f5365475b548b03550f2c3efb0120b141 | registerTx=0xc29c6ac5cd924a754e4478f7b96f84c65b083e122762473a92b846ee6518f384 | verified on-chain via processor.eval
 - 2026-10-20: GC-046 | processor=0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355 | circuitId=10 | tapeoutTx=0x5a358239bfa6f2fa6f190690197fc3396752231b6639bc9d32bf3094610013e5 | registerTx=0x3fdf3bad07b41b4bba4a8664a6b377ccb0d3bd4c645e35cd997cdcad102a6278 | attestation-only (8 inputs), not verified on-chain via processor.eval
+
+## Additional test registrations (circuits 11-14), NOT showcase circuits
+
+Registered 2026-10-26 by a separate throwaway test wallet while exercising the scripts on the real chain
+(docs/ONCHAIN-TESTS.md). Submitter for all four: `0x155d4248621Bf2601A9F9171327b8081D302b171` (not the
+showcase submitter above). Same registry (`0xAFDd108b0efCC1FF4d1e1d32579F80501774912d`) and processor
+(`0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`). The five showcase circuits are 6-10 in the section above;
+these four are extra entries, so the registry holds nine in total.
+
+- 2026-10-26: GC-007 | processor=0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355 | circuitId=11 | mintTx=0x7022098c610040990d44a35d24af62144dd9c7206c324492d22bb4c85bc20872 | tapeoutTx=0xdb02c5015e7aacbc59443f7c0bc482e897cb5d1ee0d398640268d6c5fe773039 | registerTx=0x6f57fedcfefed369b4ccf94939d25e5b5b4a6394c79d9375b89a405185c01a97 | submitter=0x155d4248621Bf2601A9F9171327b8081D302b171 | verified on-chain via processor.eval | registry depth=0 (see docs/ONCHAIN-TESTS.md, Finding 1)
+- 2026-10-26: GC-016 | processor=0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355 | circuitId=12 | mintTx=0x0ad1302c40ba817f0e7a51d225d387b6c5a424e18e6b6e1df860b246e4dde99d | tapeoutTx=0xc7f2c944747ecb4c540bfcb0ac4d519180e75daec5e6b559ec906df7f616660c | registerTx=0xbc4e4d7f73d59832fd76e25201b20d67fc4978b53351e7c24e5496f5d97ab4ec | submitter=0x155d4248621Bf2601A9F9171327b8081D302b171 | verified on-chain via processor.eval | registry depth=10
+- 2026-10-26: GC-013 | processor=0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355 | circuitId=13 | mintTx=0xb57db3bbfadd789e2de87f64c6c3f0d0ffedcf89ad578e2447b42060a9f544a0 | tapeoutTx=0xf5993734f556974ec25c2557fbec98199cc56eb16504c6c74186550afab3142a | registerTx=0xa8ef31b43147bc5c64f31b5c8a18a7704dedb620618b15ca9e3d45f8107f880f | submitter=0x155d4248621Bf2601A9F9171327b8081D302b171 | attestation-only (8 inputs), not verified on-chain via processor.eval | registry depth=10
+- 2026-10-26: GC-022 | processor=0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355 | circuitId=14 | mintTx=0xd70fe212c91047c1213fa26d44e6c4c9ac50f131b064929100693a96ddf74adf | tapeoutTx=0xeaedee4324d255b3851d5140cd178682a72a4592a0b426b48e66c2ecebe7558f | registerTx=0x52c6bacddeb13a73ca836738338bfa40848f91b937d1199820fc87bcf07e7e76 | submitter=0x155d4248621Bf2601A9F9171327b8081D302b171 | verified on-chain via processor.eval | registry depth=7

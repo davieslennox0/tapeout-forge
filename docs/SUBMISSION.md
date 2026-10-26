@@ -60,15 +60,15 @@ keeps coming back as the task bank and the field of competing circuits change ov
 
 ## Addresses
 
-- Processor used for the five tape-outs and their on-chain verification: `0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`
+- Processor used for the nine tape-outs (five showcase plus four test) and their on-chain verification: `0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`
   (OrderGuard, X Layer, chain 196) - VERIFIED, real reads. Reads of FAB_TST circuits (e.g. id=65) use `0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6`.
 - FAB-Genesis NFT: `0xBe6f94115D32f3AC3252bc4626573e739bEeb714` - VERIFIED (BUILD.md section 3).
 - ForgeRegistry: `0xAFDd108b0efCC1FF4d1e1d32579F80501774912d` (X Layer, chain 196), deployed
   2026-10-20, tx `0xad495798672b4d9c7dc4b2bdce16b64c6795fb1fad89fac469f8be327c74cc66`
   (receipt status=1). VERIFIED: re-read from the chain on 2026-10-26 with `scripts/verify-live.sh`
-  (read-only); all five entries below return the submitter `0x1F4d4B97d9cFD57b2F5CED5b87249ECCa95920E5`.
-- Real tape-outs (five), all on the OrderGuard processor `0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`,
-  each registered in ForgeRegistry (full table: docs/TAPEOUTS.md). The other 17 verified-beat
+  (read-only); the five showcase entries below return the submitter `0x1F4d4B97d9cFD57b2F5CED5b87249ECCa95920E5`; the four test entries return `0x155d4248621Bf2601A9F9171327b8081D302b171`.
+- Real tape-outs: five showcase circuits (ids 6 to 10, table below) plus four additional test registrations (ids 11 to 14, see docs/TAPEOUTS.md and docs/ONCHAIN-TESTS.md), all on the OrderGuard processor `0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`,
+  each registered in ForgeRegistry (full table: docs/TAPEOUTS.md). The other 13 verified-beat
   circuits in the gallery have **not** been tapped out.
 
   | task | circuit id | tape-out tx | register tx | status |
@@ -99,7 +99,7 @@ Not recorded yet, so there is no link to give. The 3-minute script and exact com
 ## Limits and unverified
 
 - **No reward claims.** FabX's reward variables F and K_task are undefined anywhere public, so no
-  reward amount is reported or predicted; this project only reports C and q. These five circuits
+  reward amount is reported or predicted; this project only reports C and q. These nine circuits
   are on OrderGuard, not a FabX PoD processor, and are not FabX-PoD-eligible.
 - **LATCH:** the `step()` ABI for sequential circuits is unverified, and so is the power-up state
   of a latch on silicon. Sequential tasks are excluded from the replay.
@@ -114,3 +114,11 @@ Not recorded yet, so there is no link to give. The 3-minute script and exact com
   We do not claim a physical chip exists. The generated Tiny Tapeout project still fails two CI
   jobs (`viewer`: GitHub Pages is not enabled on that repo; `gl_test`: no cocotb testbench was
   written for it); the GDS build and the 15/15 precheck checks pass (docs/SILICON.md).
+- **Registry depth.** The six registry entries registered before 2026-10-26's fix (the five showcase circuits
+  and test entry GC-007) carry `depth = 0`. The registry is immutable and prices depth 0 as 1 (`gates x 1`
+  instead of `gates x depth^3`), so those entries cannot be corrected and misprice the registry's "best"
+  comparison. The registry also takes `gates`, `depth`, `nIn` and `nOut` from the caller without checking them
+  against the processor. Entries 12 to 14 carry correct depths. Details and the cost of a clean v2: docs/ONCHAIN-TESTS.md.
+- **What "verified on-chain via processor.eval" means.** The registry checks that the caller's expected
+  outputs equal the processor's `eval()` of that same circuit, for up to 6 inputs. It does not check the circuit
+  against the task's specification; that comparison is done off-chain (`verify-live.sh`, the independent verifier).

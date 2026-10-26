@@ -51,8 +51,9 @@ FabX's winner-take-the-bonus scoring means a beaten incumbent has to find out fa
   delegation designator failing an ERC1155 receiver check), not a Genesis-NFT/allowlist gate -
   4/4 plain-EOA addresses tested mint successfully (docs/NEW.md).
 - **Real on-chain tape-outs (2026-10-26):** ForgeRegistry is deployed on X Layer at
-  `0xAFDd108b0efCC1FF4d1e1d32579F80501774912d`, and five circuits are tapped out on the OrderGuard
-  processor and registered: GC-012, GC-037, GC-050, GC-014, GC-046 (docs/TAPEOUTS.md). Four are
+  `0xAFDd108b0efCC1FF4d1e1d32579F80501774912d`. Five showcase circuits (ids 6 to 10) are tapped out on the OrderGuard
+  processor and registered: GC-012, GC-037, GC-050, GC-014, GC-046 (docs/TAPEOUTS.md). Four additional test
+  registrations (ids 11 to 14: GC-007, GC-016, GC-013, GC-022, from a separate test wallet) bring the registry to nine entries. Four are
   verified on-chain via processor.eval; GC-046 (8 inputs) is attestation-only, not verified on-chain
   via processor.eval. GC-039 was priced and fork-tested but not tapped out. These circuits are on
   OrderGuard, not a FabX PoD processor: no PoD or reward claim is made.
@@ -75,7 +76,7 @@ rewarded (currently unknown). Needs at least one real builder conversation befor
 sent anywhere. Paste a truth table, boolean expression, or netlist hex and get the optimized
 circuit, cost report, and a downloadable netlist hex; browse the 22 real verified-beat circuits
 with their real netlist hex and ready-to-copy tape-out calldata; check the registry (ForgeRegistry is live on X Layer at
-`0xAFDd108b0efCC1FF4d1e1d32579F80501774912d`; five circuits are registered: GC-012, GC-037, GC-050, GC-014, GC-046, see docs/TAPEOUTS.md).
+`0xAFDd108b0efCC1FF4d1e1d32579F80501774912d`; five showcase circuits are registered: GC-012, GC-037, GC-050, GC-014, GC-046, plus four additional test registrations, see docs/TAPEOUTS.md).
 Build it yourself: `pnpm --filter @forgeout/web build` (output in `apps/web/dist`). **The
 browser build does not include ABC** (`yosys-abc` is a native binary; it can't run in a
 browser) - `optimize()` falls back to its own Shannon-decomposition/exact-synthesis path there,
