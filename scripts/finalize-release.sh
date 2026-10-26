@@ -72,7 +72,10 @@ fi
 echo
 echo "Applying for real..."
 cd "$ROOT"
-REVEAL_NETLISTS=true pnpm --filter @forgeout/web build
+# Exported, not a one-command prefix: deploy-web.sh runs its own `pnpm build`, which would otherwise
+# re-run redact-gallery.mjs with the flag unset and overwrite this build with netlists stripped.
+export REVEAL_NETLISTS=true
+pnpm --filter @forgeout/web build
 bash scripts/deploy-web.sh forge.fanside.xyz /var/www/forge /etc/caddy/Caddyfile
 
 echo
