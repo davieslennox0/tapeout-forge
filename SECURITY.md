@@ -17,6 +17,6 @@ These are documented in `docs/LIMITS.md` and `docs/SUBMISSION.md`:
 - The registry takes `gates`, `depth`, `nIn` and `nOut` from the caller; its "verified" flag only means the supplied outputs matched the chosen processor's own `eval()`. Anyone reading `best()` should accept only `processor == OrderGuard (0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355)` and a submitter they trust.
 - A submitter can freeze a spec hash by registering `gates = 0`, because replacing an entry needs a strictly lower cost.
 - The TapeOut factory is not sealed; its owner can upgrade `eval` for every processor.
-- Dev-only advisories exist in the test toolchain (vitest, vite, esbuild); they affect the dev server and test UI, not the shipped static app.
+- Dependencies: as of 2026-10-26 `pnpm audit` reports no known vulnerabilities (vitest 4.1.12, vite 6.4.x). Earlier vitest/vite/esbuild advisories affected only the dev server and test UI, not the shipped static app.
 
 Never commit private keys, mnemonics, keystores, password files or `.env` files. If you find one in this repository's history, report it.

@@ -97,6 +97,7 @@ if [ "$UNATTENDED" -eq 1 ]; then
       exit 1 ;;
   esac
   AUTO_CONFIRM=1
+  export FORGE_GOLIVE_ORCHESTRATED=1   # tells tapeout/register/deploy that this orchestrator (with its caps) is the caller
   echo "== unattended mode: FORGE_PASSWORD_FILE=$FORGE_PASSWORD_FILE (mode 600, outside repo, verified) max-okb=$MAX_OKB effective-cap=$SPEND_CAP_OKB =="
   echo
 fi
@@ -253,7 +254,9 @@ for task in "${CIRCUITS[@]}"; do
   TO_ARGS=()
   [ "$BROADCAST" -eq 1 ] && TO_ARGS=(--broadcast)
   set +e
-  TO_OUT=$(KEYSTORE_ACCOUNT="$ACCOUNT" AUTO_CONFIRM="$AUTO_CONFIRM" FORGE_PASSWORD_FILE="${FORGE_PASSWORD_FILE:-}" MAX_OKB_OVERRIDE="${MAX_OKB:-}" \
+  # The step's budget is what is LEFT of the cap, so tapeout.sh refuses before sending anything that would overshoot the run.
+  STEP_BUDGET=$(python3 -c "print(f'{max(0.0, $SPEND_CAP_OKB - $CUMULATIVE_OKB):.9f}')")
+  TO_OUT=$(KEYSTORE_ACCOUNT="$ACCOUNT" AUTO_CONFIRM="$AUTO_CONFIRM" FORGE_PASSWORD_FILE="${FORGE_PASSWORD_FILE:-}" MAX_OKB_OVERRIDE="$STEP_BUDGET" \
     bash "$ROOT/scripts/tapeout.sh" "$task" "${TO_ARGS[@]}" 2>&1)
   TO_RC=$?
   set -e
@@ -263,10 +266,12 @@ for task in "${CIRCUITS[@]}"; do
     exit 1
   fi
   STEP_OKB=$(echo "$TO_OUT" | grep -oE 'total=[0-9.]+ OKB' | grep -oE '[0-9.]+' | head -1)
-  [ -z "$STEP_OKB" ] && STEP_OKB="0"
+  [ -z "$STEP_OKB" ] && { echo "ABORT: could not read the step cost from tapeout.sh's output; refusing to continue without a cost." >&2; exit 1; }
+  RESERVE_OKB=$(echo "$TO_OUT" | grep -oE 'reserve=[0-9.]+ OKB' | grep -oE '[0-9.]+' | head -1)
+  [ -z "$RESERVE_OKB" ] && { echo "ABORT: could not read the gas reserve from tapeout.sh's output; refusing to continue without it." >&2; exit 1; }
   echo "  before broadcast: circuit=$LABEL contract=$PROCESSOR chainId=$CHAIN_ID cost=$STEP_OKB OKB"
   check_reference "$STEP_OKB" "$task" "tapeout($LABEL)"
-  check_cap "$STEP_OKB" "tapeout($LABEL)"
+  check_cap "$(python3 -c "print($STEP_OKB + $RESERVE_OKB)")" "tapeout($LABEL) incl. gas reserve for mint, tape-out and register"
 
   if [ "$BROADCAST" -eq 0 ]; then
     echo "  (dry-run only - register.sh needs a real circuit id from a real tapeout, which hasn't happened; skipping register/verify for $LABEL this run)"

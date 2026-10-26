@@ -28,6 +28,12 @@ case "$TASK" in ""|*[!0-9]*) echo "ABORT: <task-id> must be a positive integer, 
 shift || true
 BROADCAST=0
 [ "${1:-}" = "--broadcast" ] && BROADCAST=1
+# AUTO_CONFIRM skips the typed confirmations. It is honoured only when go-live.sh --unattended is the caller (it sets
+# FORGE_GOLIVE_ORCHESTRATED=1 together with its own caps and checks). Exported by hand it would silently remove the prompts.
+if [ "$BROADCAST" -eq 1 ] && [ "${AUTO_CONFIRM:-0}" = "1" ] && [ "${FORGE_GOLIVE_ORCHESTRATED:-}" != "1" ]; then
+  echo "ABORT: AUTO_CONFIRM=1 is only honoured when go-live.sh --unattended calls this script. Unset it to get the typed confirmations." >&2
+  exit 1
+fi
 
 RPC="${FORGE_RPC_URL:-https://rpc.xlayer.tech}"  # override only for testing against a local fork
 CHAIN_ID=196
@@ -115,6 +121,14 @@ TOTAL_OKB=$(python3 -c "print($TOTAL_WEI / 1e18)")
 echo
 echo "task GC-$(printf '%03d' "$TASK"): nIn=$NIN nOut=$NOUT gates=$GATES"
 echo "real fee math (worst case, assumes zero existing transistor balance): mint=$MINT_COST_WEI wei + tapeout=$TAPEOUT_FEE_WEI wei => total=$TOTAL_OKB OKB"
+# Worst-case gas for the whole circuit (mint + tape-out + register), at the live gas price, x1.5. The bounds are above the
+# gas used in the real runs (mint 0.3M, tape-out 0.25-0.3M, register 0.12M-2.4M for up to 5 inputs; the 6-input worst case
+# measured 14.9M on the fork). The cap below counts fees AND this reserve, so deploy/register gas is no longer invisible.
+GAS_PRICE_WEI=$("$CAST" gas-price --rpc-url "$RPC" 2>/dev/null | grep -oE '^[0-9]+' | head -1 || true)
+case "$GAS_PRICE_WEI" in ""|*[!0-9]*) echo "ABORT: could not read a numeric gas price from the RPC; refusing to estimate the cost." >&2; exit 1 ;; esac
+case "$NIN" in 0|1|2) REG_GAS=500000 ;; 3) REG_GAS=1000000 ;; 4) REG_GAS=2500000 ;; 5) REG_GAS=5000000 ;; 6) REG_GAS=20000000 ;; *) REG_GAS=500000 ;; esac
+RESERVE_OKB=$(python3 -c "print(f'{($GAS_PRICE_WEI * (1000000 + 1500000 + $REG_GAS) * 1.5) / 1e18:.9f}')")
+echo "worst-case gas reserve (mint + tape-out + register, 1.5x, gas price $GAS_PRICE_WEI wei): reserve=$RESERVE_OKB OKB"
 echo "calldata (tapeout): $("$CAST" calldata "tapeout(bytes,uint32,uint32)" "$NL" "$NIN" "$NOUT")"
 
 if [ "$BROADCAST" -eq 0 ]; then
@@ -131,15 +145,15 @@ SIGNER_ARGS=()
 [ -n "${KEYSTORE_ACCOUNT:-}" ] && SIGNER_ARGS=(--account "$KEYSTORE_ACCOUNT") || SIGNER_ARGS=(--keystore "$KEY_FILE")
 [ -n "${FORGE_PASSWORD_FILE:-}" ] && SIGNER_ARGS+=(--password-file "$FORGE_PASSWORD_FILE")
 
-CAP_CHECK=$(python3 -c "print(1 if $TOTAL_OKB > $SPEND_CAP_OKB else 0)")
+CAP_CHECK=$(python3 -c "print(1 if $TOTAL_OKB + $RESERVE_OKB > $SPEND_CAP_OKB else 0)")
 if [ "$CAP_CHECK" = "1" ]; then
-  echo "ABORT: real cost $TOTAL_OKB OKB exceeds the configured spend cap $SPEND_CAP_OKB OKB." >&2
+  echo "ABORT: real cost $TOTAL_OKB OKB plus the gas reserve $RESERVE_OKB OKB exceeds the spend cap $SPEND_CAP_OKB OKB (checked before anything is sent)." >&2
   exit 1
 fi
 
 echo
 if [ "${AUTO_CONFIRM:-0}" = "1" ]; then
-  echo "=== AUTO_CONFIRM (unattended) - verifying programmatically instead of a typed prompt ==="
+  echo "=== AUTO_CONFIRM (unattended, set by go-live.sh): typed prompts replaced by programmatic checks; spend cap $SPEND_CAP_OKB OKB enforced above ==="
   REAL_CHAIN_ID=$("$CAST" chain-id --rpc-url "$RPC")
   [ "$REAL_CHAIN_ID" = "$CHAIN_ID" ] || { echo "ABORT: live chain id is $REAL_CHAIN_ID, expected $CHAIN_ID." >&2; exit 1; }
   echo "  verified: live chain id == $CHAIN_ID, processor identity already confirmed above, cap already checked by the caller"
@@ -241,7 +255,7 @@ if [ -z "$CIRCUIT_ID" ]; then
   echo "$RECEIPT_JSON"
 else
   echo "circuitId: $CIRCUIT_ID"
-  echo "- $(date -u +%Y-%m-%d): processor=$PROCESSOR circuitId=$CIRCUIT_ID tx=$TXHASH" >> "$ROOT/docs/TAPEOUTS.md"
+  echo "- $(date -u +%Y-%m-%d): GC-$(printf '%03d' "$TASK") processor=$PROCESSOR circuitId=$CIRCUIT_ID tx=$TXHASH" >> "$ROOT/docs/TAPEOUTS.md"
   echo "appended to docs/TAPEOUTS.md"
 fi
 

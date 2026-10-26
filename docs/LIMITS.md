@@ -28,5 +28,7 @@ Found in the pre-publication audit (2026-10-26); the registry is immutable, so t
 
 # Script limits
 
-See the README section "Scripts that spend real funds": `AUTO_CONFIRM` skips confirmations, go-live's spend cap is checked after each step and ignores deploy and register gas, and `deploy-web.sh` / `finalize-release.sh` are operator-only.
-
+- `go-live.sh --unattended` is the only caller that may skip the typed confirmations (it sets `AUTO_CONFIRM` and `FORGE_GOLIVE_ORCHESTRATED`); a hand-exported `AUTO_CONFIRM=1` is refused.
+- The spend cap counts fees plus a worst-case gas reserve (mint + tape-out + register) and is checked before each tape-out is sent, against the budget left in the run; an unreadable cost or reserve aborts the run. `deploy-registry.sh` has a separate cap. The gas bounds come from measured runs (they are not guarantees), so the wallet balance is still the final limit.
+- `deploy-web.sh` and `finalize-release.sh` are operator-only: they edit the Caddy config of the host they run on and wipe a web root; both now validate their inputs.
+- `register.sh` has typed confirmation but no cap of its own; inside `go-live.sh` its gas is covered by the reserve.

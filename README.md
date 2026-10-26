@@ -21,7 +21,7 @@ Prerequisites: Node 22, pnpm 9, `iverilog` (the silicon package's tests need it)
 
 ```
 pnpm install
-pnpm test                                   # vitest across packages (about 62 tests; some read X Layer, read-only)
+pnpm test                                   # vitest across packages (63 tests; some read X Layer, read-only; the fuzz test is CPU-heavy)
 cd contracts && forge install foundry-rs/forge-std --no-commit && forge test --fork-url https://rpc.xlayer.tech   # read-only fork, no key
 # run the CLI from the repo root (the package's bin is a TypeScript file, so use tsx):
 printf '(a&b)|(a&c)|(b&c)\n' > maj.expr
@@ -39,8 +39,8 @@ The CLI is named `forge` in the usage text; it is unrelated to Foundry's `forge`
 with real OKB. They are **dry-run by default**, sign only through a Foundry keystore account (`KEYSTORE_ACCOUNT` or `KEY_FILE`; a raw
 `--private-key` is never accepted) and need `--broadcast` plus a typed confirmation. Know the limits before using them:
 
-- `AUTO_CONFIRM=1` in the environment replaces the typed confirmations (go-live's `--unattended` sets it). Do not export it in a shell you use for other things.
-- go-live's spend cap is checked per step, after the step has been sent, and it does not count deploy or register gas. Fund the wallet with only what you are willing to spend; the wallet balance is the real cap.
+- **Confirmations.** `--broadcast` always asks for typed confirmations (chain id, contract, total cost). They are skipped only by `go-live.sh --unattended`, which sets `AUTO_CONFIRM` and an internal flag together; a hand-exported `AUTO_CONFIRM=1` is refused by `tapeout.sh`, `register.sh` and `deploy-registry.sh`.
+- **Spend cap.** Before anything is sent, `tapeout.sh` checks the circuit's fees plus a worst-case gas reserve (mint, tape-out and register, 1.5x the live gas price) against the budget; `go-live.sh` passes it what is left of `--max-okb`, so a run stops before the step that would overshoot (tested end to end on a fork). `deploy-registry.sh` has its own cap (default 0.01 OKB). The reserve uses bounds taken from measured gas, not an on-chain guarantee, so still fund the wallet with only what you are willing to spend.
 - `scripts/deploy-web.sh` and `scripts/finalize-release.sh` are operator-only: they edit the Caddy config of the host they run on and wipe a web root. Do not run them on a machine you do not operate.
 - `scripts/test-go-live.sh` broadcasts to a local Anvil fork only and refuses to run against anything else.
 - The runbooks in `docs/GO-LIVE.md` and `docs/USER-STEPS.md` were written for the project owner's own wallet; substitute your own keystore account name.

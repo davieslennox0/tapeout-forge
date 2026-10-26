@@ -19,7 +19,9 @@ function mulberry32(seed: number) {
 }
 
 describe("fuzz: random 3-6 input truth tables (BUILD.md section 6)", () => {
-  it("every optimize() result is exhaustively equivalent to its target and format-valid, for all 3 objectives", () => {
+  // CPU-heavy and synchronous (it can take over a minute on a small machine); vitest 4 enforces the default 5 s limit on
+  // synchronous tests, vitest 2 silently did not, so the limit is stated explicitly.
+  it("every optimize() result is exhaustively equivalent to its target and format-valid, for all 3 objectives", { timeout: 600_000 }, () => {
     const rand = mulberry32(42);
     const trials = 40;
     for (let trial = 0; trial < trials; trial++) {

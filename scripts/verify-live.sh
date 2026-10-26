@@ -10,7 +10,7 @@ CIRCUIT_ID="${2:?usage: verify-live.sh <task-id> <circuit-id> <tapeout-tx-hash> 
 TAPEOUT_TX="${3:?usage: verify-live.sh <task-id> <circuit-id> <tapeout-tx-hash> [register-tx-hash] [--rpc <url>]}"
 shift 3 || true
 REGISTER_TX=""
-RPC="https://rpc.xlayer.tech"
+RPC="${FORGE_RPC_URL:-https://rpc.xlayer.tech}"   # honour the fork override like the other scripts; --rpc still wins
 if [ "${1:-}" != "--rpc" ] && [ -n "${1:-}" ]; then REGISTER_TX="$1"; shift || true; fi
 if [ "${1:-}" = "--rpc" ]; then RPC="${2:?}"; shift 2 || true; fi
 
@@ -23,7 +23,8 @@ DATE=$(date -u +%Y-%m-%d)
 echo "== verify-live: task=GC-$(printf '%03d' "$TASK") circuit=$CIRCUIT_ID tx=$TAPEOUT_TX =="
 
 # Tape-out tx really happened and really hit the right processor.
-TO_STATUS=$("$CAST" receipt "$TAPEOUT_TX" --rpc-url "$RPC" --json | python3 -c "import json,sys; r=json.load(sys.stdin); print(r['status'], r['to'])")
+# `cast receipt` blocks forever for a hash the RPC does not know (for example a fork-only tx checked against mainnet): bound it.
+TO_STATUS=$(timeout 60 "$CAST" receipt "$TAPEOUT_TX" --rpc-url "$RPC" --json 2>/dev/null | python3 -c "import json,sys; r=json.load(sys.stdin); print(r['status'], r['to'])" 2>/dev/null) || TO_STATUS="unavailable (no receipt within 60 s on $RPC)"
 echo "tapeout receipt: status=$TO_STATUS"
 # The tape-out tx must have succeeded (status 1) and been sent to the processor; otherwise the checks below
 # would be reading some other circuit's state. Fail loudly rather than print PASS.

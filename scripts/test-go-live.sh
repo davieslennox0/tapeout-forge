@@ -102,9 +102,6 @@ echo "$OUT" | grep -q "estimating real deployment gas" \
   && bad "deploy-registry.sh was invoked anyway (should have been skipped entirely)" \
   || ok "deploy-registry.sh was never invoked - confirmed skipped, not just silently fast"
 
-echo
-echo "== $PASS passed, $FAIL failed =="
-[ "$FAIL" -eq 0 ]
 
 echo "== test 7: --unattended rejects a password file with the wrong mode =="
 BADPW="/tmp/test-badmode-pw-$$"
@@ -150,7 +147,7 @@ chmod 600 "$GOODPW"
 if OUT=$(FORGE_RPC_URL="$RPC" FORGE_PASSWORD_FILE="$GOODPW" GAS_PRICE_CEILING_WEI=2000000000 bash "$ROOT/scripts/go-live.sh" test-unattended2 --variant gc014 --broadcast --unattended --max-okb 0.001 2>&1); then
   bad "did not abort despite exceeding the tiny --max-okb"
 else
-  echo "$OUT" | grep -qE "would exceed cap|exceeds the configured spend cap" && ok "aborts for the cap reason specifically under a tiny --max-okb" || bad "aborted but not for the right reason: $OUT"
+  echo "$OUT" | grep -qE "would exceed cap|exceeds the configured spend cap|exceeds the spend cap" && ok "aborts for the cap reason specifically under a tiny --max-okb" || bad "aborted but not for the right reason: $OUT"
 fi
 rm -f "$GOODPW"
 
@@ -191,7 +188,7 @@ DEDUP_ADDR=$(echo "$PK_JSON" | python3 -c "import json,sys; d=json.load(sys.stdi
 
 # Case A: zero existing balance -> full mint, then tapeout (task 20, fresh nIn=3 task not used
 # by the real run, keeps this test independent of the owner's real circuits).
-OUT_A=$(KEY_FILE="$DEDUP_KEYDIR/dedup-test" FORGE_PASSWORD_FILE="$DEDUP_PW" AUTO_CONFIRM=1 FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/tapeout.sh" 7 --broadcast 2>&1) || true
+OUT_A=$(KEY_FILE="$DEDUP_KEYDIR/dedup-test" FORGE_PASSWORD_FILE="$DEDUP_PW" AUTO_CONFIRM=1 FORGE_GOLIVE_ORCHESTRATED=1 FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/tapeout.sh" 7 --broadcast 2>&1) || true
 echo "$OUT_A" | grep -q "Minting transistors" && echo "$OUT_A" | grep -q "circuitId:" \
   && ok "case A (zero balance): mints full amount, tapeout succeeds" \
   || bad "case A did not mint-then-tapeout as expected: $OUT_A"
@@ -199,13 +196,13 @@ echo "$OUT_A" | grep -q "Minting transistors" && echo "$OUT_A" | grep -q "circui
 # Case B: existing balance already sufficient -> mint skipped entirely.
 BAL_B=$("$CAST" call "0x8e71FC45ff47E5a7bA1ad2960793ebAdD2739D9e" "balanceOf(address,uint256)(uint256)" "$DEDUP_ADDR" 0 --rpc-url "$RPC")
 "$CAST" send "0x8e71FC45ff47E5a7bA1ad2960793ebAdD2739D9e" "mint(uint256,uint256)" 0 50 --value 0.00566ether --rpc-url "$RPC" --keystore "$DEDUP_KEYDIR/dedup-test" --password-file "$DEDUP_PW" >/dev/null 2>&1 || true
-OUT_B=$(KEY_FILE="$DEDUP_KEYDIR/dedup-test" FORGE_PASSWORD_FILE="$DEDUP_PW" AUTO_CONFIRM=1 FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/tapeout.sh" 14 --broadcast 2>&1) || true
+OUT_B=$(KEY_FILE="$DEDUP_KEYDIR/dedup-test" FORGE_PASSWORD_FILE="$DEDUP_PW" AUTO_CONFIRM=1 FORGE_GOLIVE_ORCHESTRATED=1 FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/tapeout.sh" 14 --broadcast 2>&1) || true
 echo "$OUT_B" | grep -q "Skipping mint: existing transistor balance" \
   && ok "case B (sufficient existing balance): mint skipped entirely" \
   || bad "case B did not skip the mint as expected: $OUT_B"
 
 # Case C: non-zero but insufficient balance -> mints only the real shortfall.
-OUT_C=$(KEY_FILE="$DEDUP_KEYDIR/dedup-test" FORGE_PASSWORD_FILE="$DEDUP_PW" AUTO_CONFIRM=1 FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/tapeout.sh" 35 --broadcast 2>&1) || true
+OUT_C=$(KEY_FILE="$DEDUP_KEYDIR/dedup-test" FORGE_PASSWORD_FILE="$DEDUP_PW" AUTO_CONFIRM=1 FORGE_GOLIVE_ORCHESTRATED=1 FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/tapeout.sh" 35 --broadcast 2>&1) || true
 echo "$OUT_C" | grep -q "partially covers" && echo "$OUT_C" | grep -q "circuitId:" \
   && ok "case C (partial existing balance): mints only the shortfall, then tapes out successfully" \
   || bad "case C did not do a partial mint as expected: $OUT_C"
@@ -252,9 +249,6 @@ else
 fi
 rm -f "$WAITFN_TEST"
 
-echo
-echo "== $PASS passed, $FAIL failed =="
-[ "$FAIL" -eq 0 ]
 
 echo "== test 13: --unattended with no FORGE_PASSWORD_FILE set aborts (there is no default password location) =="
 if OUT=$(env -u FORGE_PASSWORD_FILE FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/go-live.sh" my-forgeout-key --variant gc014 --broadcast --unattended --max-okb 1.0 2>&1); then
@@ -262,3 +256,55 @@ if OUT=$(env -u FORGE_PASSWORD_FILE FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/go-
 else
   echo "$OUT" | grep -q "requires FORGE_PASSWORD_FILE" && ok "aborts when FORGE_PASSWORD_FILE is unset" || bad "aborted but not for the right reason: $OUT"
 fi
+
+# --- helper: a throwaway keystore funded on the fork, for tests that must reach the broadcast stage ---
+mk_keystore() {
+  KS_DIR=$(mktemp -d /tmp/test-ks-XXXXXX); KS_PW="$KS_DIR/pw"
+  printf "testpw123unattended" > "$KS_PW"; chmod 600 "$KS_PW"
+  local j; j=$("$CAST" wallet new --json)
+  local pk; pk=$(echo "$j" | python3 -c "import json,sys; d=json.load(sys.stdin); a=d[0] if isinstance(d,list) else d['data']['accounts'][0]; print(a['private_key'])")
+  KS_ADDR=$(echo "$j" | python3 -c "import json,sys; d=json.load(sys.stdin); a=d[0] if isinstance(d,list) else d['data']['accounts'][0]; print(a['address'])")
+  "$CAST" wallet import ks --keystore-dir "$KS_DIR" --private-key "$pk" --unsafe-password testpw123unattended >/dev/null
+  "$CAST" rpc anvil_setBalance "$KS_ADDR" 0x56BC75E2D63100000 --rpc-url "$RPC" >/dev/null 2>&1
+  KS_FILE="$KS_DIR/ks"
+}
+mk_keystore
+NONCE0=$("$CAST" nonce "$KS_ADDR" --rpc-url "$RPC"); BAL0=$("$CAST" balance "$KS_ADDR" --rpc-url "$RPC")
+
+echo "== test 14: AUTO_CONFIRM=1 exported by hand (no orchestrator) is refused by tapeout, register and deploy-registry =="
+for spec in "tapeout.sh 7" "register.sh 7 1" "deploy-registry.sh"; do
+  set -- $spec
+  if OUT=$(KEY_FILE="$KS_FILE" FORGE_PASSWORD_FILE="$KS_PW" AUTO_CONFIRM=1 FORGE_RPC_URL="$RPC" FORGE_REGISTRY_ADDRESS="$REGISTRY" bash "$ROOT/scripts/$1" "${@:2}" --broadcast 2>&1); then
+    bad "$1 ran with a hand-exported AUTO_CONFIRM=1"
+  else
+    echo "$OUT" | grep -q "only honoured when go-live.sh --unattended calls this script" && ok "$1 refuses AUTO_CONFIRM without the orchestrator" || bad "$1 aborted but not for the right reason: $OUT"
+  fi
+done
+[ "$("$CAST" nonce "$KS_ADDR" --rpc-url "$RPC")" = "$NONCE0" ] && ok "no transaction was sent by any of them (nonce unchanged)" || bad "a transaction was sent despite the refusal"
+
+echo "== test 15: the cap counts fees AND the gas reserve and aborts BEFORE sending =="
+# GC-007 fees alone are 0.00266 OKB, so a 0.0027 cap passes on fees but not once the ~0.00009 OKB reserve is added.
+if OUT=$(KEY_FILE="$KS_FILE" FORGE_PASSWORD_FILE="$KS_PW" AUTO_CONFIRM=1 FORGE_GOLIVE_ORCHESTRATED=1 MAX_OKB_OVERRIDE=0.0027 FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/tapeout.sh" 7 --broadcast 2>&1); then
+  bad "tapeout.sh broadcast although fees plus the gas reserve exceed the cap"
+else
+  echo "$OUT" | grep -q "plus the gas reserve" && ok "aborts on fees + gas reserve over the cap" || bad "aborted but not for the right reason: $OUT"
+fi
+[ "$("$CAST" nonce "$KS_ADDR" --rpc-url "$RPC")" = "$NONCE0" ] && [ "$("$CAST" balance "$KS_ADDR" --rpc-url "$RPC")" = "$BAL0" ] && ok "nothing was sent and the balance is unchanged" || bad "the wallet changed although the cap should have stopped the run"
+
+echo "== test 16: deploy-registry.sh has a spend cap on the deployment gas, checked before sending =="
+if OUT=$(KEY_FILE="$KS_FILE" FORGE_PASSWORD_FILE="$KS_PW" AUTO_CONFIRM=1 FORGE_GOLIVE_ORCHESTRATED=1 MAX_OKB_OVERRIDE=0.000001 FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/deploy-registry.sh" --broadcast 2>&1); then
+  bad "deploy-registry.sh broadcast over its cap"
+else
+  echo "$OUT" | grep -q "exceeds the cap" && ok "deployment aborts when its estimated cost exceeds the cap" || bad "aborted but not for the right reason: $OUT"
+fi
+[ "$("$CAST" nonce "$KS_ADDR" --rpc-url "$RPC")" = "$NONCE0" ] && ok "no deployment was sent" || bad "a deployment was sent"
+
+echo "== test 17: go-live passes the REMAINING budget to tapeout.sh and refuses to continue without a parsed cost =="
+grep -q 'MAX_OKB_OVERRIDE="$STEP_BUDGET"' "$ROOT/scripts/go-live.sh" && grep -q 'STEP_BUDGET=$(python3 -c "print(f' "$ROOT/scripts/go-live.sh" && ok "per-step budget is cap minus cumulative spend" || bad "go-live no longer passes the remaining budget"
+grep -q "could not read the step cost" "$ROOT/scripts/go-live.sh" && grep -q "could not read the gas reserve" "$ROOT/scripts/go-live.sh" && ok "a missing step cost or gas reserve aborts instead of defaulting to 0" || bad "go-live can still default an unparsed cost to 0"
+rm -rf "$KS_DIR"
+
+echo
+echo "== $PASS passed, $FAIL failed =="
+[ "$FAIL" -eq 0 ]
+

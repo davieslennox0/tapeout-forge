@@ -17,6 +17,12 @@ FORGE="$FOUNDRY_BIN/forge"
 CAST="$FOUNDRY_BIN/cast"
 BROADCAST=0
 [ "${1:-}" = "--broadcast" ] && BROADCAST=1
+# AUTO_CONFIRM skips the typed confirmations. It is honoured only when go-live.sh --unattended is the caller (it sets
+# FORGE_GOLIVE_ORCHESTRATED=1 together with its own caps and checks). Exported by hand it would silently remove the prompts.
+if [ "$BROADCAST" -eq 1 ] && [ "${AUTO_CONFIRM:-0}" = "1" ] && [ "${FORGE_GOLIVE_ORCHESTRATED:-}" != "1" ]; then
+  echo "ABORT: AUTO_CONFIRM=1 is only honoured when go-live.sh --unattended calls this script. Unset it to get the typed confirmations." >&2
+  exit 1
+fi
 
 if [ -z "${KEYSTORE_ACCOUNT:-}" ] && [ -z "${KEY_FILE:-}" ]; then
   echo "Set KEYSTORE_ACCOUNT or KEY_FILE (never a raw private key on this command line)." >&2
@@ -55,6 +61,15 @@ if [ "$BROADCAST" -eq 0 ]; then
   exit 0
 fi
 
+# Spend cap for the deployment itself (its gas was previously not capped at all). Default 0.01 OKB, which is about 1000x the
+# real cost (0.0000093 OKB measured); override with MAX_OKB_OVERRIDE.
+DEPLOY_CAP_OKB="${MAX_OKB_OVERRIDE:-0.01}"
+case "$DEPLOY_CAP_OKB" in *[!0-9.]*|""|.|*.*.*) echo "ABORT: MAX_OKB_OVERRIDE must be a plain decimal number, got '$DEPLOY_CAP_OKB'." >&2; exit 1 ;; esac
+case "${COST_OKB:-}" in ""|*[!0-9.e-]*) echo "ABORT: no numeric gas estimate for the deployment; refusing to broadcast without a cost." >&2; exit 1 ;; esac
+if [ "$(python3 -c "print(1 if $COST_OKB > $DEPLOY_CAP_OKB else 0)")" = "1" ]; then
+  echo "ABORT: estimated deployment cost $COST_OKB OKB exceeds the cap $DEPLOY_CAP_OKB OKB (checked before anything is sent)." >&2
+  exit 1
+fi
 echo
 if [ "${AUTO_CONFIRM:-0}" = "1" ]; then
   echo "=== AUTO_CONFIRM (unattended) - verifying programmatically instead of a typed prompt ==="

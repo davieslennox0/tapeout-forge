@@ -21,6 +21,12 @@ case "$CIRCUIT_ID" in ""|*[!0-9]*) echo "ABORT: <real-circuit-id> must be a non-
 shift 2 || true
 BROADCAST=0
 [ "${1:-}" = "--broadcast" ] && BROADCAST=1
+# AUTO_CONFIRM skips the typed confirmations. It is honoured only when go-live.sh --unattended is the caller (it sets
+# FORGE_GOLIVE_ORCHESTRATED=1 together with its own caps and checks). Exported by hand it would silently remove the prompts.
+if [ "$BROADCAST" -eq 1 ] && [ "${AUTO_CONFIRM:-0}" = "1" ] && [ "${FORGE_GOLIVE_ORCHESTRATED:-}" != "1" ]; then
+  echo "ABORT: AUTO_CONFIRM=1 is only honoured when go-live.sh --unattended calls this script. Unset it to get the typed confirmations." >&2
+  exit 1
+fi
 
 RPC="${FORGE_RPC_URL:-https://rpc.xlayer.tech}"  # override only for testing against a local fork
 CHAIN_ID=196
