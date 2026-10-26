@@ -115,9 +115,9 @@ Not recorded yet, so there is no link to give. The 3-minute script and exact com
   four tape-outs are verified on-chain via processor.eval.
 - **Silicon export: layout generated, not ordered.** Tapeout-ready export. We have not ordered
   fabrication. Ordering is a separate paid step that the circuit owner completes on Tiny Tapeout.
-  We do not claim a physical chip exists. The generated Tiny Tapeout project still fails two CI
-  jobs (`viewer`: GitHub Pages is not enabled on that repo; `gl_test`: no cocotb testbench was
-  written for it); the GDS build and the 15/15 precheck checks pass (docs/SILICON.md).
+  We do not claim a physical chip exists. The generated Tiny Tapeout project still fails four CI
+  checks (`viewer`: GitHub Pages is not enabled on that repo; `gl_test` and the separate `test` workflow: no cocotb testbench was
+  written for it; `docs`: `docs/info.md` is a template placeholder); the GDS build and the 15/15 precheck checks pass (docs/SILICON.md).
 - **Registry v1 depth.** Registry v1's entries registered before the 2026-10-26 fix (the five showcase circuits and test
   entry GC-007) carry `depth = 0`. v1 is immutable and prices depth 0 as 1 (`gates x 1` instead of `gates x depth^3`), so
   those entries cannot be corrected and misprice v1's "best" comparison. The five showcase circuits were therefore
