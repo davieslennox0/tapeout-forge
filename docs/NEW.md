@@ -245,3 +245,4 @@ n=4 exact library NOT built: per-class SAT too slow (75/3984 classes in 16 min, 
   ready; with all 5 temporarily faked as verified (then immediately reverted - docs/TAPEOUTS.md
   confirmed unchanged by git diff), reaches a clean secret-scan PASS and prints the correct
   dry-run plan without ever running the real visibility command.
+- 2026-10-26: RELEASE PREP step 2 (circuit-list correction). Entries above that list GC-039 among the final circuits (e.g. 2026-10-19 7.2+7.3) are kept as history and are SUPERSEDED: the five real tape-outs are GC-012, GC-037, GC-050, GC-014, GC-046 (docs/TAPEOUTS.md). GC-039 was priced and fork-tested but not tapped out. GC-046 is attestation-only (8 inputs), not verified on-chain via processor.eval; the other four are verified on-chain via processor.eval. apps/web gallery and registry panel updated to match.

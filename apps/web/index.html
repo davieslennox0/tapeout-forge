@@ -100,7 +100,7 @@
       <div style="border-top:2px solid var(--accent);padding-top:20px">
         <div class="mono" style="font-size:13px;color:var(--accent);margin-bottom:10px">01</div>
         <h3 style="font-size:20px;font-weight:600;margin-bottom:10px">Optimize</h3>
-        <p class="muted" style="margin:0">Exact synthesis up to three inputs, plus ABC and rewriting for larger functions. Pick area, depth, or balanced, and aim at a reference cost.</p>
+        <p class="muted" style="margin:0">Exact synthesis up to three inputs, plus rewriting for larger functions (ABC also runs in the CLI, not in this browser build). Pick area, depth, or balanced, and aim at a reference cost.</p>
       </div>
       <div style="border-top:2px solid var(--accent);padding-top:20px">
         <div class="mono" style="font-size:13px;color:var(--accent);margin-bottom:10px">02</div>
@@ -110,7 +110,7 @@
       <div style="border-top:2px solid var(--accent);padding-top:20px">
         <div class="mono" style="font-size:13px;color:var(--accent);margin-bottom:10px">03</div>
         <h3 style="font-size:20px;font-weight:600;margin-bottom:10px">Tape out</h3>
-        <p class="muted" style="margin:0">Copy the netlist or the ready-made tape-out calldata, send it from your own wallet, and list the circuit in the registry once it is deployed.</p>
+        <p class="muted" style="margin:0">Copy the netlist or the ready-made tape-out calldata, send it from your own wallet, and list the circuit in the registry (live on X Layer).</p>
       </div>
     </div>
   </div>
@@ -222,7 +222,7 @@
       <div class="panel" style="flex:1 1 400px;min-width:0;border-color:var(--accent)">
         <div style="font-size:18px;font-weight:600;margin-bottom:14px">Ordering limitation</div>
         <p style="margin:0 0 16px">Tapeout-ready export. We have not ordered fabrication. Ordering is a separate paid step that the circuit owner completes on Tiny Tapeout. We do not claim a physical chip exists.</p>
-        <div class="muted" style="font-size:14px">Supported: combinational circuits up to about 500 cells, with references flattened first. Latches only with a documented reset convention. Anything else is refused with a reason.</div>
+        <div class="muted" style="font-size:14px">Supported: combinational circuits up to about 500 cells and 8 inputs, with references flattened first. Circuits with latches are refused (docs/SILICON.md). Anything else is refused with a reason.</div>
       </div>
     </div>
   </div>

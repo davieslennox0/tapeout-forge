@@ -171,9 +171,15 @@ export async function verifyOnchain(
   }
 
   const netlist = localNetlist ?? (await fetchNetlist(rpcUrl, processor, id));
-  const inputs = packInputBits(inputBits);
+  // The CLI unpacks `--inputs 0x..` into whole bytes (8 bits each), so a 3-input circuit arrives
+  // with 8 bits. Keep the first nIn pins; refuse (rather than silently drop) any set bit beyond them.
+  if (inputBits.length > netlist.nIn && inputBits.slice(netlist.nIn).some((b) => b !== 0)) {
+    throw new Error(`verifyOnchain: inputs set bits beyond the circuit's nIn=${netlist.nIn}`);
+  }
+  const bits = inputBits.length > netlist.nIn ? inputBits.slice(0, netlist.nIn) : inputBits;
+  const inputs = packInputBits(bits);
   const onchain = await callEval(rpcUrl, processor, id, inputs, netlist.nOut);
-  const localSimulation = evalCombinational(netlist, inputBits);
+  const localSimulation = evalCombinational(netlist, bits);
   const match = JSON.stringify(localSimulation) === JSON.stringify(onchain.outputBits);
 
   return {

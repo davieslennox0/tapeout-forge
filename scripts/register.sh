@@ -114,6 +114,10 @@ else
   [ "$TYPED_OK" = "CONFIRM" ] || { echo "Not confirmed. Aborting." >&2; exit 1; }
 fi
 
-"$CAST" send "$REGISTRY" "submit(bytes32,address,uint256,uint8,uint8,uint32,uint32,bytes[],bytes32)" \
+SEND_JSON=$("$CAST" send "$REGISTRY" "submit(bytes32,address,uint256,uint8,uint8,uint32,uint32,bytes[],bytes32)" \
   "$SPEC_HASH" "$PROCESSOR" "$CIRCUIT_ID" "$NIN" "$NOUT" "$GATES" "$DEPTH" "$EXPECTED_ARG" "0x0000000000000000000000000000000000000000000000000000000000000000" \
-  --rpc-url "$RPC" "${SIGNER_ARGS[@]}"
+  --rpc-url "$RPC" "${SIGNER_ARGS[@]}" --json)
+echo "$SEND_JSON"
+# Machine-readable line so go-live.sh can record the real register tx hash (verify-live.sh takes it as arg 4).
+REGISTER_TX=$(echo "$SEND_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['transactionHash'])")
+echo "registerTx: $REGISTER_TX"

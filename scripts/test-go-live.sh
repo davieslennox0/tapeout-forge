@@ -11,6 +11,10 @@ REGISTRY="${FORGE_REGISTRY_ADDRESS:?set FORGE_REGISTRY_ADDRESS to the fork-deplo
 CAST="$HOME/.foundry/bin/cast"
 PASS=0
 FAIL=0
+# Tests 3/4/9/10/11 touch docs/TAPEOUTS.md (fork-only entries); always put the real ledger back.
+LEDGER_ORIG=$(mktemp)
+cp "$ROOT/docs/TAPEOUTS.md" "$LEDGER_ORIG"
+trap 'cp "$LEDGER_ORIG" "$ROOT/docs/TAPEOUTS.md"; rm -f "$LEDGER_ORIG"' EXIT
 ok()  { echo "PASS: $1"; PASS=$((PASS+1)); }
 bad() { echo "FAIL: $1"; FAIL=$((FAIL+1)); }
 
@@ -45,7 +49,18 @@ echo "== test 4: spend-cap abort - a cumulative cost over an artificially tiny c
 TMPSCRIPT="$ROOT/scripts/.go-live-test-cap.sh"
 sed 's/^SPEND_CAP_OKB=0.05462.*/SPEND_CAP_OKB=0.005/' "$ROOT/scripts/go-live.sh" > "$TMPSCRIPT"
 chmod +x "$TMPSCRIPT"
+# All 5 real circuits are now recorded in docs/TAPEOUTS.md and live in the registry, so the
+# orchestrator would resume-skip every one and never spend anything. Run against an empty
+# ledger so circuits are actually processed, then restore the real file immediately.
+TAPEOUTS_BACKUP4=$(cat "$ROOT/docs/TAPEOUTS.md")
+: > "$ROOT/docs/TAPEOUTS.md"
 if OUT=$(FORGE_RPC_URL="$RPC" bash "$TMPSCRIPT" my-forgeout-key --variant gc014 2>&1); then
+  RC4=0
+else
+  RC4=1
+fi
+printf '%s\n' "$TAPEOUTS_BACKUP4" > "$ROOT/docs/TAPEOUTS.md"
+if [ "$RC4" -eq 0 ]; then
   bad "did not abort despite exceeding the tiny test cap"
 else
   echo "$OUT" | grep -q "would exceed cap" && ok "aborts the whole run when cumulative spend exceeds the cap" || bad "aborted but not for the right reason"
@@ -110,6 +125,21 @@ else
 fi
 rm -f "$INREPO"
 
+# Fixture for tests 9 and 10: a throwaway, fork-funded keystore named test-unattended2 (created only
+# if absent, removed afterwards if we created it) and an empty ledger, since all 5 real circuits
+# are now recorded and would otherwise be resume-skipped before any cost check runs.
+T2_PW="/tmp/test-t2-pw-$$"; printf "testpw123unattended" > "$T2_PW"; chmod 600 "$T2_PW"
+T2_CREATED=0
+if [ ! -e "$HOME/.foundry/keystores/test-unattended2" ]; then
+  T2_PK=$("$CAST" wallet new --json | python3 -c "import json,sys; d=json.load(sys.stdin); a=d[0] if isinstance(d,list) else d['data']['accounts'][0]; print(a['private_key'])")
+  "$CAST" wallet import test-unattended2 --private-key "$T2_PK" --unsafe-password testpw123unattended >/dev/null
+  T2_CREATED=1
+fi
+T2_ADDR=$("$CAST" wallet address --account test-unattended2 --password-file "$T2_PW")
+"$CAST" rpc anvil_setBalance "$T2_ADDR" 0x56BC75E2D63100000 --rpc-url "$RPC" >/dev/null 2>&1
+TAPEOUTS_BACKUP9=$(cat "$ROOT/docs/TAPEOUTS.md")
+: > "$ROOT/docs/TAPEOUTS.md"
+
 echo "== test 9: --unattended spend-cap abort uses --max-okb, not just the default cap =="
 GOODPW="/tmp/test-goodmode-pw-$$"
 printf "testpw123unattended" > "$GOODPW"
@@ -135,6 +165,10 @@ else
 fi
 rm -f "$TMPSCRIPT2" "$GOODPW2"
 
+printf '%s\n' "$TAPEOUTS_BACKUP9" > "$ROOT/docs/TAPEOUTS.md"  # restore the real ledger immediately
+rm -f "$T2_PW"
+[ "$T2_CREATED" -eq 1 ] && rm -f "$HOME/.foundry/keystores/test-unattended2"
+
 echo "== test 11: transistor-mint dedup - skip/partial/full mint cases, all real on-chain checks =="
 # Real bug found during the owner's actual go-live run: GC-037's mint succeeded (36 real
 # transistors held), but its own tapeout failed on an unrelated nonce race, leaving 36 unused
@@ -146,9 +180,9 @@ printf "testpw123unattended" > "$DEDUP_PW"
 chmod 600 "$DEDUP_PW"
 DEDUP_KEYDIR="/tmp/test-dedup-keystore-$$"
 mkdir -p "$DEDUP_KEYDIR"
-PK_JSON=$("$CAST" wallet new-mnemonic --json)
-DEDUP_PK=$(echo "$PK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['data']['accounts'][0]['private_key'])")
-DEDUP_ADDR=$(echo "$PK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['data']['accounts'][0]['address'])")
+PK_JSON=$("$CAST" wallet new --json)
+DEDUP_PK=$(echo "$PK_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); a=d[0] if isinstance(d,list) else d['data']['accounts'][0]; print(a['private_key'])")
+DEDUP_ADDR=$(echo "$PK_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); a=d[0] if isinstance(d,list) else d['data']['accounts'][0]; print(a['address'])")
 "$CAST" wallet import dedup-test --keystore-dir "$DEDUP_KEYDIR" --private-key "$DEDUP_PK" --unsafe-password testpw123unattended >/dev/null
 "$CAST" rpc anvil_setBalance "$DEDUP_ADDR" 0x56BC75E2D63100000 --rpc-url "$RPC" >/dev/null 2>&1
 

@@ -21,7 +21,7 @@ This is now the authoritative cost table for the hackathon go-live plan.
 | GC-012 | 4/4 | 56 | 8 | 496,000 | 28,672 | 4.000 |
 | GC-037 | 4/4 | 36 | 9 | 63,936 | 26,244 | 2.436 |
 | GC-050 | 4/8 | 46 | 7 | 43,000 | 15,778 | 2.725 |
-| GC-039 | 6/6 | 119 | 12 | 576,000 | 205,632 | 2.801 |
+| GC-039 | 6/6 | 119 | 12 | 576,000 | 205,632 | 2.801 |  <!-- priced and fork-tested only; NOT tapped out (docs/TAPEOUTS.md lists the five real tape-outs) -->
 | GC-046 | 8/4 | 92 | 10 | 367,416 | 92,000 | 3.994 |
 
 \*depth derived from the already-verified C=gates×depth³ formula (all five are exact integer

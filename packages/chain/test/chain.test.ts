@@ -56,6 +56,17 @@ describe("callEval against the live X Layer processor (real network)", () => {
   });
 });
 
+describe("verifyOnchain with whole-byte inputs, as the CLI passes them (`--inputs 0x07`)", () => {
+  it("FAB_TST id=65 (3-input MAJ3): 8 padded bits [1,1,1,0,0,0,0,0] match the real eval()", async () => {
+    const r = await verifyOnchain(X_LAYER.rpcUrl, FAB_TST, 65n, [1, 1, 1, 0, 0, 0, 0, 0]);
+    expect(r.match).toBe(true);
+    expect(r.onchain.outputBits).toEqual([1]);
+  }, 30000);
+  it("refuses a set bit beyond the circuit's nIn instead of silently dropping it", async () => {
+    await expect(verifyOnchain(X_LAYER.rpcUrl, FAB_TST, 65n, [1, 1, 1, 1, 0, 0, 0, 0])).rejects.toThrow(/beyond/);
+  }, 30000);
+});
+
 describe("FAB_TST processor address integrity (2026-10-19 check: two spellings had appeared across reports, only one in any committed file)", () => {
   function isEip55Checksummed(address: string): boolean {
     const addr = address.replace(/^0x/, "");

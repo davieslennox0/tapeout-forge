@@ -282,13 +282,17 @@ for task in "${CIRCUITS[@]}"; do
 
   REG_ARGS=()
   [ "$BROADCAST" -eq 1 ] && REG_ARGS=(--broadcast)
+  REG_LOG=$(mktemp)
   FORGE_REGISTRY_ADDRESS="$FORGE_REGISTRY_ADDRESS" KEYSTORE_ACCOUNT="$ACCOUNT" AUTO_CONFIRM="$AUTO_CONFIRM" FORGE_PASSWORD_FILE="${FORGE_PASSWORD_FILE:-}" \
-    bash "$ROOT/scripts/register.sh" "$task" "$CIRCUIT_ID" "${REG_ARGS[@]}" \
-    || { echo "ABORT: register.sh failed for $LABEL. Stopping the whole run." >&2; exit 1; }
+    bash "$ROOT/scripts/register.sh" "$task" "$CIRCUIT_ID" "${REG_ARGS[@]}" 2>&1 | tee "$REG_LOG"
+  REG_RC=${PIPESTATUS[0]}
+  [ "$REG_RC" -eq 0 ] || { echo "ABORT: register.sh failed for $LABEL. Stopping the whole run." >&2; rm -f "$REG_LOG"; exit 1; }
+  REGISTER_TX=$(grep -oE '^registerTx: 0x[0-9a-fA-F]{64}' "$REG_LOG" | tail -1 | awk '{print $2}' || true)
+  rm -f "$REG_LOG"
 
   TAPEOUT_TX=$(tail -2 "$ROOT/docs/TAPEOUTS.md" | grep -oE 'tx=0x[0-9a-fA-F]+' | head -1 | cut -d= -f2 || true)
   set +e
-  VERIFY_OUT=$(bash "$ROOT/scripts/verify-live.sh" "$task" "$CIRCUIT_ID" "$TAPEOUT_TX" 2>&1)
+  VERIFY_OUT=$(bash "$ROOT/scripts/verify-live.sh" "$task" "$CIRCUIT_ID" "$TAPEOUT_TX" ${REGISTER_TX:+"$REGISTER_TX"} 2>&1)
   VERIFY_RC=$?
   set -e
   echo "$VERIFY_OUT"

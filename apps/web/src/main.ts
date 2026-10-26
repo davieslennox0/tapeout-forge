@@ -187,6 +187,7 @@ function renderGallery() {
       <div style="min-width:0">
         <div class="mono dim" style="font-size:13px">GC-${String(row.id).padStart(3, '0')}</div>
         <div style="font-weight:500">${row.name}</div>
+        ${row.tapeout ? `<div class="mono" style="font-size:12px;margin-top:4px;color:#E0904F">Taped out · circuit #${row.tapeout.circuitId} · <a href="https://www.oklink.com/xlayer/tx/${row.tapeout.tapeoutTx}" style="color:inherit">tx</a><br><span class="dim">${row.tapeout.status}</span></div>` : ''}
       </div>
       <span class="mono muted" style="font-size:14px">${row.nIn}/${row.nOut}</span>
       <span class="mono muted" style="text-align:right;font-size:14px">${fmtNum(row.Cref)}</span>
@@ -204,7 +205,7 @@ function renderGallery() {
       const span = document.createElement('span');
       span.className = 'dim';
       span.style.fontSize = '13px';
-      span.textContent = 'Published after tape-out';
+      span.textContent = row.tapeout ? 'Netlist is on-chain' : 'Published after tape-out';
       btnCell.appendChild(span);
     }
     container.appendChild(item);
@@ -216,16 +217,13 @@ $('verified-intro').textContent =
 renderPager();
 renderGallery();
 
-// Registry — not deployed anywhere real yet (Phase 2 only verified ForgeRegistry on a fork).
-const REGISTRY_ADDRESS: string | null = null;
-$('registry-panel').innerHTML = REGISTRY_ADDRESS
-  ? `<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px"><div style="font-size:18px;font-weight:600">Best-circuit lookup</div></div>
-     <p>Registry at <span class="mono">${REGISTRY_ADDRESS}</span> — live lookup not yet wired up.</p>`
-  : `<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px">
+// Registry — ForgeRegistry is live on X Layer (chain 196); five circuits are registered (docs/TAPEOUTS.md).
+const REGISTRY_ADDRESS: string | null = '0xAFDd108b0efCC1FF4d1e1d32579F80501774912d';
+const TAPED_OUT = (gallery as any[]).filter((r) => r.tapeout);
+$('registry-panel').innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px">
        <div style="font-size:18px;font-weight:600">Best-circuit lookup</div>
-       <span class="badge">Not deployed yet</span>
+       <span class="badge">Live on X Layer</span>
      </div>
-     <p class="muted" style="margin:0 0 18px">An ownerless contract keeps the best verified circuit for each function. Anyone can replace it with a strictly better one. For up to six inputs the contract proves equivalence itself by calling the circuit on every row.</p>
-     <label for="spec">Spec hash</label>
-     <input id="spec" type="text" disabled placeholder="0x…" class="mono" style="width:100%;background:#101315;color:#8D969E;border-color:#262B31">
-     <p class="dim" style="margin:18px 0 0;font-size:14px">Lookup switches on after deployment. The contract is built and tested against an X Layer fork (<code>docs/GAS-VERIFY.md</code>).</p>`;
+     <p class="muted" style="margin:0 0 18px">Registry at <a class="mono" href="https://www.oklink.com/xlayer/address/${REGISTRY_ADDRESS}" style="color:inherit">${REGISTRY_ADDRESS}</a>. An ownerless contract keeps the best verified circuit for each function. Anyone can replace it with a strictly better one. In-page lookup is not wired up yet; read it with <code>best(bytes32)</code>.</p>
+     <p class="muted" style="margin:0 0 8px">Five circuits are registered on the OrderGuard processor:</p>
+     <ul style="margin:0;padding-left:20px">${TAPED_OUT.map((r) => `<li class="mono" style="font-size:14px">GC-${String(r.id).padStart(3, '0')} · circuit #${r.tapeout.circuitId} · ${r.tapeout.status}</li>`).join('')}</ul>`;

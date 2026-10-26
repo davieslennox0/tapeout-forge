@@ -12,20 +12,20 @@ tape-out submission. It is infrastructure for other TapeOut builders, not a cons
 
 ## Users, and how to reach them
 
-Circuit builders and FabX Proof-of-Design miners on X Layer (reached via the FabX/TapeOut
-Discord and the task-bank community, where "my circuit beats the reference" is a concrete,
+Circuit builders and FabX Proof-of-Design miners on X Layer (to be reached via the FabX/TapeOut
+Discord and the task-bank community; no outreach is claimed yet, where "my circuit beats the reference" is a concrete,
 checkable claim this tool produces); contracts that depend on a circuit and want a checkable
 equivalence proof before trusting it with funds; processor creators as ecosystem partners (a
-shared registry of best-known circuits is more tape-out volume for them). **Why they'd pay and
-keep using it**: verification and headroom are the product, not raw gas savings (X Layer gas is
+shared registry of best-known circuits is more tape-out volume for them). **Why they might pay and
+keep using it (hypothesis, UNVALIDATED)**: verification and headroom are the product, not raw gas savings (X Layer gas is
 cheap) - a wrong "my circuit is equivalent" claim costs real money once funds depend on it, and
 FabX's winner-take-the-bonus scoring means a beaten incumbent has to find out fast, not guess.
 
-## Status (honest, as of Phase 3 - see BUILD.md for the full history)
+## Status (honest, as of 2026-10-26 - see BUILD.md for the full history)
 
 - **Core engine** (packages/core): netlist parse/serialize, exhaustive + SAT equivalence
   checking, exact synthesis (proven minimal, nIn<=3), ABC-assisted optimization, cost/FabX C+q
-  reporting. 50 tests passing, including a fuzz suite that has caught 2 real bugs.
+  reporting. 62 vitest tests (core 43, chain 8, silicon 8, cli 3) and 8 Foundry tests (run against an X Layer fork) pass as of 2026-10-26; a fuzz test caught a real `optimize()` bug on 2026-10-18 (docs/NEW.md).
 - **Real FabX replay** (docs/FABX-REPLAY.md): across the 46/100 FabX tasks that have a complete,
   verifiable spec (the other 54 are sampled-only - fitting them would be overfitting, so they
   are excluded, not guessed at): **beat 22, tie 11, lose 13**. Every beat independently
@@ -50,6 +50,12 @@ FabX's winner-take-the-bonus scoring means a beaten incumbent has to find out fa
   barrier: it was an artifact of the specific test address's own on-chain code (an EIP-7702
   delegation designator failing an ERC1155 receiver check), not a Genesis-NFT/allowlist gate -
   4/4 plain-EOA addresses tested mint successfully (docs/NEW.md).
+- **Real on-chain tape-outs (2026-10-26):** ForgeRegistry is deployed on X Layer at
+  `0xAFDd108b0efCC1FF4d1e1d32579F80501774912d`, and five circuits are tapped out on the OrderGuard
+  processor and registered: GC-012, GC-037, GC-050, GC-014, GC-046 (docs/TAPEOUTS.md). Four are
+  verified on-chain via processor.eval; GC-046 (8 inputs) is attestation-only, not verified on-chain
+  via processor.eval. GC-039 was priced and fork-tested but not tapped out. These circuits are on
+  OrderGuard, not a FabX PoD processor: no PoD or reward claim is made.
 - **Known gaps, still genuinely open**: no proven-exact synthesis above 3 inputs (13/46 real
   tasks still lose outright); FabX's hidden reward variables (F, K_task, n, m) remain publicly
   undefined, so no real $FAB payout can be predicted - this tool only ever reports C and q.
@@ -68,8 +74,8 @@ rewarded (currently unknown). Needs at least one real builder conversation befor
 **Web app** (apps/web): a static site, the whole TS engine running in your browser - nothing is
 sent anywhere. Paste a truth table, boolean expression, or netlist hex and get the optimized
 circuit, cost report, and a downloadable netlist hex; browse the 22 real verified-beat circuits
-with their real netlist hex and ready-to-copy tape-out calldata; check the registry (shows "not
-deployed" honestly - ForgeRegistry is verified on a fork, not deployed to the real chain yet).
+with their real netlist hex and ready-to-copy tape-out calldata; check the registry (ForgeRegistry is live on X Layer at
+`0xAFDd108b0efCC1FF4d1e1d32579F80501774912d`; five circuits are registered: GC-012, GC-037, GC-050, GC-014, GC-046, see docs/TAPEOUTS.md).
 Build it yourself: `pnpm --filter @forgeout/web build` (output in `apps/web/dist`). **The
 browser build does not include ABC** (`yosys-abc` is a native binary; it can't run in a
 browser) - `optimize()` falls back to its own Shannon-decomposition/exact-synthesis path there,
@@ -80,13 +86,13 @@ actually runs.
 ```
 forge optimize <file> --format hex|csv|expr|netlist [--nin N] [--nout N] --objective area|depth|balanced [--cref N] [--count-buffers] [--out path]
 forge verify-onchain --processor <addr> --id <n> --inputs <hex> [--netlist-hex <file> --nin N --nout N]
-forge replay
+forge replay                                     (prints the committed table from docs/FABX-REPLAY.md; it does not re-run the optimizer)
 forge calldata <file-or-hex> --nin N --nout M      (dry-run only - never sends a transaction)
 ```
 Examples:
 ```
 forge optimize circuit.expr --format expr --objective area --cref 1728
-forge verify-onchain --processor 0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355 --id 65 --inputs 0x07
+forge verify-onchain --processor 0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6 --id 65 --inputs 0x07
 forge replay
 forge calldata netlist.hex --nin 4 --nout 1
 ```

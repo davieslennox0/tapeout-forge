@@ -1,6 +1,6 @@
 # Demo script (BUILD.md 3.5) - 3:00 max, leads with the replay result
 
-Not recorded yet (TODO). Exact commands/clicks below so recording it is mechanical.
+Not recorded yet. Exact commands/clicks below so recording it is mechanical.
 
 ## 0:00-0:35 - Lead with the strongest, most verifiable claim
 
@@ -8,7 +8,8 @@ Screen: terminal.
 ```
 forge replay
 ```
-Say: "This replays our optimizer against FabX's real, public task bank on X Layer - not a demo
+Say: "This prints the committed replay of our optimizer against FabX's real, public task bank on X
+Layer (the live re-run script is packages/core/scripts/fabx-replay-v2.ts) - not a demo
 bank, the actual 100 tasks miners compete on. Of the 46 tasks that have a complete, honest
 specification - the other 54 are sampled-only, and we exclude them rather than overfit - we
 beat the reference on 22, tie on 11, lose on 13. Zero of those numbers are guessed."
@@ -36,17 +37,16 @@ Screen: browser, apps/web (built: `pnpm --filter @forgeout/web build`, served lo
   "verified: true (method=...)" line, the downloadable netlist hex. Say: "This whole thing runs
   in your browser - nothing is sent anywhere. No ABC in this build, by design; the CLI is where
   that runs."
-- Scroll to the registry section. Point at the honest "not deployed" message. Say: "We don't
-  pretend this is live. It's built, it's tested on a real fork, and it says so plainly."
+- Scroll to the registry section. Point at the registry address and the five registered circuits. Say: "This is live on X Layer. Four are verified on-chain through the processor's own eval; GC-046 has 8 inputs, so it is attestation-only and the page says so."
 
 ## 1:50-2:25 - Real on-chain reads (not a mock)
 
 Screen: terminal.
 ```
-forge verify-onchain --processor 0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355 --id 65 --inputs 0x07
+forge verify-onchain --processor 0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6 --id 65 --inputs 0x07
 ```
 Say: "This is a real, live eth_call against X Layer right now - circuit 65 on the real
-OrderGuard processor, which happens to already sit at the proven 6-gate minimum for 3-input
+FabX processor (FAB_TST), which happens to already sit at the proven 6-gate minimum for 3-input
 majority. Local simulation against the actual deployed contract, matching exactly."
 
 ## 2:25-2:50 - The dry-run tape-out path (honest about what's NOT done)
@@ -56,9 +56,9 @@ Screen: terminal.
 forge calldata netlist.hex --nin 4 --nout 1
 ```
 Say: "This builds the real tapeout() calldata against the real fee schedule on X Layer - real
-ABI, real fees, verified live on a fork. It never sends anything. Actually tapping these out is
-a deliberate manual step for the project owner, with their own key - that checklist is in
-docs/USER-STEPS.md, and it's not done yet. We'd rather say that than fake a submission."
+ABI, real fees, verified live on a fork. It never sends anything. Five circuits (GC-012, GC-037, GC-050, GC-014, GC-046) are already tapped out and registered by the
+owner with their own key - docs/TAPEOUTS.md has every transaction. The other 17 gallery circuits are
+not tapped out. We'd rather say that than overstate it."
 
 Optional, if time remains: "We went one step further for one circuit - `forge export-silicon`
 generated a real Tiny Tapeout repo, and we ran Tiny Tapeout's own CI on it for real. Synthesis
@@ -71,4 +71,4 @@ completes on Tiny Tapeout. We do not claim a physical chip exists." (docs/SILICO
 
 Say: "Forgeout: infrastructure, not an app. The headline number is real, independently
 re-checked, and the honest gaps - no proven synthesis above 3 inputs, FabX's reward formula still
-has undefined terms - are documented, not hidden. Repo: github.com/davieslennox0/tapeout-forge."
+has undefined terms - are documented, not hidden. Repo: github.com/davieslennox0/tapeout-forge (private until the owner changes its visibility)."
