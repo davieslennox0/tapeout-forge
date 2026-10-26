@@ -81,6 +81,10 @@ Only work done after the event start on 2026-10-16 counts. The first commit in t
 | "Browse 22 verified circuits" | web | SUPPORTED | `gallery.json` has 22 rows. |
 | The gallery and registry panel show tape-out status for the five showcase circuits and describe the four test registrations | web | SUPPORTED | `gallery.json` carries `tapeout` for ids 12, 14, 37, 46, 50; built and checked 2026-10-26. The deployed copy at forgeout.xyz does not have this update yet (owner step). |
 | https://forgeout.xyz is the canonical web address and is not live yet | SUBMISSION | SUPPORTED | `getent hosts forgeout.xyz` returns nothing and an HTTPS request fails (2026-10-26): no DNS record yet. The earlier host (a subdomain of another domain) is no longer cited anywhere. |
+| The registry panel badge reads "Registry live", not a claim that lookup works | web | SUPPORTED | `best(bytes32)` is not wired into the page (the panel says so); the badge states only that the registry is deployed. |
+| English task names are primary in the gallery, with the Chinese title kept as secondary text | web | SUPPORTED, translations unreviewed | `nameEn` in `gallery.full.json` is a translation of each Chinese title written during release prep, not an official FabX name; a native speaker has not reviewed it. |
+| The "4.0x" stat is one task; median q among the 22 wins is 1.93x | web | SUPPORTED | `gallery.full.json`: exactly one row at q = 4 (GC-012); median of the 22 q values = 1.926, computed in the page from the same data. |
+| "Checked improvements" names the off-chain equivalence checks; "verified on-chain via processor.eval" is kept only for the on-chain label | web | SUPPORTED | Wording changed in `index.html`/`main.ts`; the exact on-chain labels are unchanged. |
 | DeWEB was researched and not deployed | README, SUBMISSION | SUPPORTED | docs/DEWEB-RESEARCH.md; no publish transaction. |
 
 ## 5. Business claims

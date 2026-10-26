@@ -182,11 +182,12 @@ function renderGallery() {
   for (const row of visible) {
     const qPct = Math.min(100, (row.q / 4) * 100);
     const item = document.createElement('div');
-    item.style.cssText = 'display:grid;grid-template-columns:minmax(220px,2fr) 90px 110px 110px minmax(160px,1.4fr) auto;gap:16px;padding:16px 24px;align-items:center;border-bottom:1px solid #20252A';
+    item.style.cssText = 'min-width:940px;display:grid;grid-template-columns:minmax(220px,2fr) 90px 110px 110px minmax(160px,1.4fr) auto;gap:16px;padding:16px 24px;align-items:center;border-bottom:1px solid #20252A';
     item.innerHTML = `
       <div style="min-width:0">
         <div class="mono dim" style="font-size:13px">GC-${String(row.id).padStart(3, '0')}</div>
-        <div style="font-weight:500">${row.name}</div>
+        <div style="font-weight:500">${row.nameEn}</div>
+        <div class="dim" style="font-size:13px" lang="zh">${String(row.name).replace(/^GC-\d+\s*/, '')}</div>
         ${row.tapeout ? `<div class="mono" style="font-size:12px;margin-top:4px;color:#E0904F">Taped out · circuit #${row.tapeout.circuitId} · <a href="https://www.oklink.com/xlayer/tx/${row.tapeout.tapeoutTx}" style="color:inherit">tx</a><br><span class="dim">${row.tapeout.status}</span></div>` : ''}
       </div>
       <span class="mono muted" style="font-size:14px">${row.nIn}/${row.nOut}</span>
@@ -212,18 +213,25 @@ function renderGallery() {
   }
 }
 
-$('verified-intro').textContent =
+$('checked-intro').textContent =
   '46 of the 100 FabX tasks have a complete, checkable spec. On those, Forgeout beats the reference cost on 22, ties 11, and trails on 13. Each result below was re-checked by a separate from-scratch tool with no shared code.';
 renderPager();
 renderGallery();
+// Median q among the wins, computed from the same data the table shows (index.html carries a static fallback).
+{
+  const qs = (gallery as any[]).map((r) => r.q as number).sort((a, b) => a - b);
+  const mid = Math.floor(qs.length / 2);
+  const median = qs.length % 2 ? qs[mid] : (qs[mid - 1] + qs[mid]) / 2;
+  $('median-q').textContent = `${median.toFixed(2)}×`;
+}
 
 // Registry — ForgeRegistry is live on X Layer (chain 196); five showcase circuits plus four test registrations (docs/TAPEOUTS.md).
 const REGISTRY_ADDRESS: string | null = '0xAFDd108b0efCC1FF4d1e1d32579F80501774912d';
 const TAPED_OUT = (gallery as any[]).filter((r) => r.tapeout);
 $('registry-panel').innerHTML = `<div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px">
        <div style="font-size:18px;font-weight:600">Best-circuit lookup</div>
-       <span class="badge">Live on X Layer</span>
+       <span class="badge">Registry live</span>
      </div>
-     <p class="muted" style="margin:0 0 18px">Registry at <a class="mono" href="https://www.oklink.com/xlayer/address/${REGISTRY_ADDRESS}" style="color:inherit">${REGISTRY_ADDRESS}</a>. An ownerless contract keeps the best verified circuit for each function. Anyone can replace it with a strictly better one. In-page lookup is not wired up yet; read it with <code>best(bytes32)</code>.</p>
+     <p class="muted" style="margin:0 0 18px">Registry at <a class="mono" href="https://www.oklink.com/xlayer/address/${REGISTRY_ADDRESS}" style="color:inherit">${REGISTRY_ADDRESS}</a>. An ownerless contract keeps the best-known circuit for each function. Anyone can replace it with a strictly better one. In-page lookup is not wired up yet; read it with <code>best(bytes32)</code>.</p>
      <p class="muted" style="margin:0 0 8px">Five showcase circuits (ids 6 to 10) are registered on the OrderGuard processor, plus four additional test registrations (ids 11 to 14, separate wallet), nine entries in total. The showcase circuits:</p>
      <ul style="margin:0;padding-left:20px">${TAPED_OUT.map((r) => `<li class="mono" style="font-size:14px">GC-${String(r.id).padStart(3, '0')} · circuit #${r.tapeout.circuitId} · ${r.tapeout.status}</li>`).join('')}</ul>`;

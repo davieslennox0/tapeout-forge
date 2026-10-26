@@ -2,6 +2,7 @@
   {
     "id": 7,
     "name": "GC-007 双输入同或门",
+    "nameEn": "2-input XNOR gate",
     "nIn": 2,
     "nOut": 1,
     "Cref": 1512,
@@ -16,6 +17,7 @@
   {
     "id": 12,
     "name": "GC-012 四到二独热编码与错误检测器",
+    "nameEn": "4-to-2 one-hot encoder with error detector",
     "nIn": 4,
     "nOut": 4,
     "Cref": 496000,
@@ -36,6 +38,7 @@
   {
     "id": 13,
     "name": "GC-013 四位相等比较器",
+    "nameEn": "4-bit equality comparator",
     "nIn": 8,
     "nOut": 1,
     "Cref": 48384,
@@ -50,6 +53,7 @@
   {
     "id": 14,
     "name": "GC-014 四位全零检测器",
+    "nameEn": "4-bit all-zero detector",
     "nIn": 4,
     "nOut": 1,
     "Cref": 8748,
@@ -70,6 +74,7 @@
   {
     "id": 16,
     "name": "GC-016 四位数据偶校验检查器",
+    "nameEn": "4-bit even-parity checker",
     "nIn": 5,
     "nOut": 1,
     "Cref": 32832,
@@ -84,6 +89,7 @@
   {
     "id": 21,
     "name": "GC-021 二位无符号大小比较器",
+    "nameEn": "2-bit unsigned magnitude comparator",
     "nIn": 4,
     "nOut": 3,
     "Cref": 16384,
@@ -98,6 +104,7 @@
   {
     "id": 22,
     "name": "GC-022 四位回绕加一器",
+    "nameEn": "4-bit wrap-around incrementer",
     "nIn": 4,
     "nOut": 4,
     "Cref": 16767,
@@ -112,6 +119,7 @@
   {
     "id": 23,
     "name": "GC-023 四位回绕减一器",
+    "nameEn": "4-bit wrap-around decrementer",
     "nIn": 4,
     "nOut": 4,
     "Cref": 24000,
@@ -126,6 +134,7 @@
   {
     "id": 35,
     "name": "GC-035 四位无符号饱和减法器",
+    "nameEn": "4-bit unsigned saturating subtractor",
     "nIn": 8,
     "nOut": 5,
     "Cref": 417605,
@@ -140,6 +149,7 @@
   {
     "id": 36,
     "name": "GC-036 四位补码大小比较器",
+    "nameEn": "4-bit two's-complement comparator",
     "nIn": 8,
     "nOut": 3,
     "Cref": 115776,
@@ -154,6 +164,7 @@
   {
     "id": 37,
     "name": "GC-037 四位补码绝对值转换器",
+    "nameEn": "4-bit two's-complement absolute-value converter",
     "nIn": 4,
     "nOut": 4,
     "Cref": 63936,
@@ -174,6 +185,7 @@
   {
     "id": 39,
     "name": "GC-039 三位无符号乘法器",
+    "nameEn": "3-bit unsigned multiplier",
     "nIn": 6,
     "nOut": 6,
     "Cref": 576000,
@@ -188,6 +200,7 @@
   {
     "id": 40,
     "name": "GC-040 四位双输入最小最大值选择器",
+    "nameEn": "4-bit two-input min/max selector",
     "nIn": 8,
     "nOut": 8,
     "Cref": 239625,
@@ -202,6 +215,7 @@
   {
     "id": 43,
     "name": "GC-043 八位字置位计数器",
+    "nameEn": "8-bit population counter (set bits)",
     "nIn": 8,
     "nOut": 4,
     "Cref": 2780346,
@@ -216,6 +230,7 @@
   {
     "id": 44,
     "name": "GC-044 八位字前导零计数器",
+    "nameEn": "8-bit leading-zero counter",
     "nIn": 8,
     "nOut": 4,
     "Cref": 334084,
@@ -230,6 +245,7 @@
   {
     "id": 45,
     "name": "GC-045 八位字尾随零计数器",
+    "nameEn": "8-bit trailing-zero counter",
     "nIn": 8,
     "nOut": 4,
     "Cref": 334084,
@@ -244,6 +260,7 @@
   {
     "id": 46,
     "name": "GC-046 八路低位优先编码器",
+    "nameEn": "8-way lowest-bit-first priority encoder",
     "nIn": 8,
     "nOut": 4,
     "Cref": 367416,
@@ -264,6 +281,7 @@
   {
     "id": 47,
     "name": "GC-047 带使能的三到八译码器",
+    "nameEn": "3-to-8 decoder with enable",
     "nIn": 4,
     "nOut": 8,
     "Cref": 43011,
@@ -278,6 +296,7 @@
   {
     "id": 50,
     "name": "GC-050 四位二进制转两位十进制BCD",
+    "nameEn": "4-bit binary to 2-digit decimal BCD converter",
     "nIn": 4,
     "nOut": 8,
     "Cref": 43000,
@@ -298,6 +317,7 @@
   {
     "id": 53,
     "name": "GC-053 带使能的四位一分四分配器",
+    "nameEn": "4-bit 1-to-4 demultiplexer with enable",
     "nIn": 7,
     "nOut": 16,
     "Cref": 59778,
@@ -312,6 +332,7 @@
   {
     "id": 54,
     "name": "GC-054 四位可变逻辑移位器",
+    "nameEn": "4-bit variable logical shifter",
     "nIn": 7,
     "nOut": 4,
     "Cref": 155987,
@@ -326,6 +347,7 @@
   {
     "id": 55,
     "name": "GC-055 四位可变循环移位器",
+    "nameEn": "4-bit variable rotator",
     "nIn": 7,
     "nOut": 4,
     "Cref": 186745,

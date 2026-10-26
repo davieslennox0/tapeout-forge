@@ -45,7 +45,7 @@
     <nav aria-label="Primary" style="display:flex;flex-wrap:wrap;gap:8px 28px;font-size:15px">
       <a href="#how" style="color:var(--muted)">How it works</a>
       <a href="#optimizer" style="color:var(--muted)">Optimizer</a>
-      <a href="#verified" style="color:var(--muted)">Verified improvements</a>
+      <a href="#checked" style="color:var(--muted)">Checked improvements</a>
       <a href="#registry" style="color:var(--muted)">Registry</a>
       <a href="#silicon" style="color:var(--muted)">Silicon path</a>
       <a href="#limits" style="color:var(--muted)">Limits</a>
@@ -64,11 +64,12 @@
     <p class="muted" style="margin:0 0 36px;max-width:520px;font-size:19px">Forgeout takes a spec or a netlist, finds a smaller and shallower version, proves it computes the same function, and hands you the tape-out calldata for X Layer.</p>
     <div style="display:flex;flex-wrap:wrap;gap:12px">
       <a class="btn btn-primary" href="#optimizer">Try the optimizer</a>
-      <a class="btn" href="#verified">Browse 22 verified circuits</a>
+      <a class="btn" href="#checked">Browse 22 checked circuits</a>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:32px 48px;margin-top:56px">
       <div><div style="font-family:var(--display);font-weight:700;font-size:36px;line-height:1">22 of 46</div><div class="dim" style="font-size:14px;margin-top:6px;max-width:160px">replayable FabX tasks beaten</div></div>
-      <div><div style="font-family:var(--display);font-weight:700;font-size:36px;line-height:1">4.0×</div><div class="dim" style="font-size:14px;margin-top:6px;max-width:160px">top q, at the scoring cap</div></div>
+      <div><div style="font-family:var(--display);font-weight:700;font-size:36px;line-height:1">4.0× <span style="font-size:16px;font-weight:500" class="dim">(1 task)</span></div><div class="dim" style="font-size:14px;margin-top:6px;max-width:170px">top q, at the scoring cap</div></div>
+      <div><div style="font-family:var(--display);font-weight:700;font-size:36px;line-height:1" id="median-q">1.93×</div><div class="dim" style="font-size:14px;margin-top:6px;max-width:170px">median q among the 22 wins</div></div>
       <div><div style="font-family:var(--display);font-weight:700;font-size:36px;line-height:1">0</div><div class="dim" style="font-size:14px;margin-top:6px;max-width:170px">mismatches across two independent verifiers</div></div>
     </div>
   </div>
@@ -162,14 +163,14 @@
   </div>
 </section>
 
-<section id="verified" style="border-top:1px solid var(--border);background:var(--panel2)">
+<section id="checked" style="border-top:1px solid var(--border);background:var(--panel2)">
   <div class="wrap" style="padding:88px 32px 72px">
-    <h2 style="font-size:32px;margin-bottom:12px">22 verified improvements</h2>
-    <p class="muted" id="verified-intro" style="margin:0 0 32px;max-width:760px">Loading…</p>
+    <h2 style="font-size:32px;margin-bottom:12px">22 checked improvements</h2>
+    <p class="muted" id="checked-intro" style="margin:0 0 32px;max-width:760px">Loading…</p>
 
     <div role="group" aria-label="Rows per page" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px" id="pager"></div>
 
-    <div id="gallery" class="panel" style="padding:0;overflow:hidden"></div>
+    <div id="gallery" class="panel" style="padding:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch"></div>
     <p class="dim" style="margin:16px 0 0;font-size:14px">q = reference C ÷ our C, capped at 4. C = area × depth³ with two output buffers per output counted. Costs are never converted into reward amounts.</p>
   </div>
 </section>
@@ -202,7 +203,7 @@
       <h2 style="font-size:32px">Silicon path</h2>
       <span class="badge">1 circuit exported</span>
     </div>
-    <p class="muted" style="margin:0 0 40px;max-width:760px">Forgeout exports a verified circuit as a Tiny Tapeout project: structural Verilog, the template wrapper, and the GitHub Actions flow that produces the layout. A majority-of-three test circuit has already gone through that open-source flow (<a href="https://github.com/davieslennox0/maj3-silicon-spike">davieslennox0/maj3-silicon-spike</a>).</p>
+    <p class="muted" style="margin:0 0 40px;max-width:760px">Forgeout exports a checked circuit as a Tiny Tapeout project: structural Verilog, the template wrapper, and the GitHub Actions flow that produces the layout. A majority-of-three test circuit has already gone through that open-source flow (<a href="https://github.com/davieslennox0/maj3-silicon-spike">davieslennox0/maj3-silicon-spike</a>).</p>
     <div style="display:flex;flex-wrap:wrap;gap:24px">
       <div class="panel" style="flex:1 1 520px;min-width:0">
         <div style="font-size:18px;font-weight:600;margin-bottom:24px">Where a circuit stands</div>
@@ -236,7 +237,7 @@
       <div style="border-left:2px solid var(--border3);padding-left:20px"><h3 style="font-size:17px;font-weight:600;margin-bottom:8px">No reward predictions</h3><p class="muted" style="margin:0;font-size:15px">FabX does not publish all of its reward variables, so Forgeout reports cost C and score q only, never a payout.</p></div>
       <div style="border-left:2px solid var(--border3);padding-left:20px"><h3 style="font-size:17px;font-weight:600;margin-bottom:8px">46 of 100 tasks replayed</h3><p class="muted" style="margin:0;font-size:15px">The other 54, including every sequential task, ship only sampled test vectors. Fitting those would be overfitting, so they are left out.</p></div>
       <div style="border-left:2px solid var(--border3);padding-left:20px"><h3 style="font-size:17px;font-weight:600;margin-bottom:8px">The reference still wins 13</h3><p class="muted" style="margin:0;font-size:15px">Exact synthesis is proven only up to three inputs. Above that Forgeout is heuristic and sometimes loses.</p></div>
-      <div style="border-left:2px solid var(--border3);padding-left:20px"><h3 style="font-size:17px;font-weight:600;margin-bottom:8px">Registry depth 0 on six entries</h3><p class="muted" style="margin:0;font-size:15px">Six registry entries were registered with depth 0 before a fix. The registry is immutable and prices depth 0 as 1, so those entries misprice its best-circuit comparison. Entries 12 to 14 are correct. &ldquo;Verified on-chain via processor.eval&rdquo; means the registry checked the supplied outputs against the processor&rsquo;s own eval of that circuit, not against the task specification.</p></div>
+      <div style="border-left:2px solid var(--border3);padding-left:20px"><h3 style="font-size:17px;font-weight:600;margin-bottom:8px">Registry depth 0 on six entries</h3><p class="muted" style="margin:0;font-size:15px">Six registry entries were registered with depth 0 before a fix. The registry is immutable and prices depth 0 as 1, so those entries misprice its best-circuit comparison. Entries 12 to 14 are correct. &ldquo;verified on-chain via processor.eval&rdquo; means the registry checked the supplied outputs against the processor&rsquo;s own eval of that circuit, not against the task specification.</p></div>
       <div style="border-left:2px solid var(--border3);padding-left:20px"><h3 style="font-size:17px;font-weight:600;margin-bottom:8px">No fabrication claim</h3><p class="muted" style="margin:0;font-size:15px">We have not ordered fabrication; that is a separate paid step the circuit owner takes. On this page, tape-out means the on-chain TapeOut circuit unless it says silicon.</p></div>
     </div>
   </div>
