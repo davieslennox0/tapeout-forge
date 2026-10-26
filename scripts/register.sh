@@ -52,9 +52,16 @@ $(python3 -c "
 import json
 d = json.load(open('$ROOT/apps/web/src/data/gallery.full.json'))
 row = next(r for r in d if r['id'] == $TASK)
-print(row['nIn'], row['nOut'], row['totalGates'], row.get('depth', 0))
+print(row['nIn'], row['nOut'], row['totalGates'], row['depth'])
 ")
 EOF
+
+# The registry prices a circuit as gates x max(depth,1)^3 using the depth the CALLER passes; depth 0 is
+# silently priced as 1 and cannot be corrected later (registry entries are immutable). Never submit it.
+if [ "$DEPTH" = "0" ] || [ -z "$DEPTH" ]; then
+  echo "ABORT: depth for task $TASK is $DEPTH (missing from gallery.full.json). Refusing to register: the registry would price it at depth 1 permanently." >&2
+  exit 1
+fi
 
 SPEC_HASH=$("$CAST" keccak "GC-$(printf '%03d' "$TASK")")
 echo "specHash: $SPEC_HASH   nIn=$NIN nOut=$NOUT gates=$GATES depth=$DEPTH"
