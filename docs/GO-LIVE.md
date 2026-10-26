@@ -201,3 +201,7 @@ locally since.
 ## DNS for the web app
 
 Before the web deploy, `forgeout.xyz` (and `www.forgeout.xyz` if wanted) needs an A record pointing at the server's public IP. `scripts/deploy-web.sh` checks this and stops before reloading Caddy if the name does not resolve to the host. Check with `getent hosts forgeout.xyz`.
+
+## Registry v2
+
+The canonical registry is v2 (`0xD304F09ba30c41196a6a3C66EBb117184306A06F`, `config/chains.ts` `FORGE_REGISTRY_ADDRESS`); `go-live.sh` resumes against it by default. v1 (`0xAFDd108b0efCC1FF4d1e1d32579F80501774912d`) is superseded because its entries were registered at depth 0. Do not target v1.

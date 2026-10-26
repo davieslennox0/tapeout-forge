@@ -32,6 +32,7 @@
       "circuitId": 6,
       "tapeoutTx": "0x259da87e6a22449c5f3ee00c196ffaa249379a1f5f625eb48e771a62c7705c05",
       "registerTx": "0x59048af8b9dfe8c832825a4cdf9880fefb2f5d4e81fa842f00666e0fef0f0da0",
+      "registerTxV2": "0x3cb6a7092a9b3d05ac393498b42ccaf217c9291823c2c3dd471092e76914e30a",
       "status": "verified on-chain via processor.eval"
     }
   },
@@ -68,6 +69,7 @@
       "circuitId": 9,
       "tapeoutTx": "0xfa38b3d7a5b4f91fbfc74513feb4e68f5365475b548b03550f2c3efb0120b141",
       "registerTx": "0xc29c6ac5cd924a754e4478f7b96f84c65b083e122762473a92b846ee6518f384",
+      "registerTxV2": "0x523d5a788972954fc86d18c9ce10aaa32f454390dcf700b0f4c2f7b915241c23",
       "status": "verified on-chain via processor.eval"
     }
   },
@@ -179,6 +181,7 @@
       "circuitId": 7,
       "tapeoutTx": "0xdb3d0a339d94658f7c7f14dca7ee80e6fc45ca474bb9f5abc69acf5e07a0fe5a",
       "registerTx": "0x44f4e36ed2abd1c919f8e75744ce0c3c9e3afea00c3e2a7fcd89efe0b48cf9b2",
+      "registerTxV2": "0x863ac9a23fb0d0cdd9a0b509f7d812ea1c337248e01b7dd36d5f8ad8af780e59",
       "status": "verified on-chain via processor.eval"
     }
   },
@@ -275,6 +278,7 @@
       "circuitId": 10,
       "tapeoutTx": "0x5a358239bfa6f2fa6f190690197fc3396752231b6639bc9d32bf3094610013e5",
       "registerTx": "0x3fdf3bad07b41b4bba4a8664a6b377ccb0d3bd4c645e35cd997cdcad102a6278",
+      "registerTxV2": "0xedbb77044aa57ff2a2f358bdb8517ce1daff757bce628e8f1e099efb5e3aa367",
       "status": "attestation-only (8 inputs), not verified on-chain via processor.eval"
     }
   },
@@ -311,6 +315,7 @@
       "circuitId": 8,
       "tapeoutTx": "0x247e6c4ccce7d764cc27f847fc127288cc7f77ec1856c88550a893967bbf9235",
       "registerTx": "0x7c9def59a11af8f1175ec9b4c16e752580b69229c2b314d19f8d3749da7c66dd",
+      "registerTxV2": "0x24caf2bc21a7e687cbf5f3147e5e968dbbd4c10ec8a58d39b63b4fd7a287ec60",
       "status": "verified on-chain via processor.eval"
     }
   },

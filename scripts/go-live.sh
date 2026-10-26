@@ -50,7 +50,7 @@ SPEND_CAP_OKB=0.05462   # config/cost.ts PHASE8_SPEND_CAP_OKB - keep in sync by 
 # requiring the caller to export it) is the actual fix for the real stall this project hit: a
 # prior run deployed the registry for real, but the address only ever lived in that one shell's
 # env var, so a fresh invocation had no way to know it already existed and would have redeployed.
-FORGE_REGISTRY_ADDRESS="${FORGE_REGISTRY_ADDRESS:-0xAFDd108b0efCC1FF4d1e1d32579F80501774912d}"
+FORGE_REGISTRY_ADDRESS="${FORGE_REGISTRY_ADDRESS:-0xD304F09ba30c41196a6a3C66EBb117184306A06F}"
 FOUNDRY_BIN="${FOUNDRY_BIN:-$HOME/.foundry/bin}"
 CAST="$FOUNDRY_BIN/cast"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

@@ -37,7 +37,7 @@ Screen: browser, apps/web (built: `pnpm --filter @forgeout/web build`, served lo
   "verified: true (method=...)" line, the downloadable netlist hex. Say: "This whole thing runs
   in your browser - nothing is sent anywhere. No ABC in this build, by design; the CLI is where
   that runs."
-- Scroll to the registry section. Point at the registry address, the five showcase circuits and the four additional test registrations. Say: "This is live on X Layer. Four are verified on-chain through the processor's own eval; GC-046 has 8 inputs, so it is attestation-only and the page says so."
+- Scroll to the registry section. Point at the registry (v2) address and the five showcase circuits registered there; mention that v1 is superseded. Say: "This is live on X Layer. Four are verified on-chain through the processor's own eval; GC-046 has 8 inputs, so it is attestation-only and the page says so."
 
 ## 1:50-2:25 - Real on-chain reads (not a mock)
 
@@ -65,7 +65,7 @@ generated a real Tiny Tapeout repo, and we ran Tiny Tapeout's own CI on it for r
 and DRC both passed, 15 out of 15 checks, producing a real 34-cell GDS. Tapeout-ready export.
 We have not ordered fabrication. Ordering is a separate paid step that the circuit owner
 completes on Tiny Tapeout. We do not claim a physical chip exists." (docs/SILICON.md, run
-39150702389 on github.com/davieslennox0/maj3-silicon-spike)
+40368814040 on github.com/davieslennox0/maj3-silicon-spike)
 
 ## 2:50-3:00 - Close
 

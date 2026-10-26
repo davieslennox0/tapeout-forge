@@ -46,4 +46,9 @@ export const ACTIVE_TRANSISTORS = ORDERGUARD_TRANSISTORS;
 // redeploy while it has code - resuming a run with this unset was the real cause of the
 // go-live stall (go-live.sh never persisted the address after a real deploy; env-var-only
 // resume state does not survive a new shell invocation).
-export const FORGE_REGISTRY_ADDRESS = "0xAFDd108b0efCC1FF4d1e1d32579F80501774912d";
+// REGISTRY v2 (canonical since 2026-10-26): same ForgeRegistry code (runtime bytecode identical, only the compiler metadata hash differs),
+// deployed from the owner wallet, tx 0x35f2670b12b7af4907f57933a2394bc5b04eb74708e4061e9e5d83f203ce3748. The five showcase circuits were re-registered here with correct depths.
+export const FORGE_REGISTRY_ADDRESS = "0xD304F09ba30c41196a6a3C66EBb117184306A06F";
+// v1 (deployed 2026-10-20) is superseded: its six entries registered before the depth fix carry depth 0, are immutable and misprice
+// the registry comparison. Kept for reference only; never target it.
+export const FORGE_REGISTRY_V1_SUPERSEDED = "0xAFDd108b0efCC1FF4d1e1d32579F80501774912d";

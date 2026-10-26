@@ -63,12 +63,16 @@ keeps coming back as the task bank and the field of competing circuits change ov
 - Processor used for the nine tape-outs (five showcase plus four test) and their on-chain verification: `0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`
   (OrderGuard, X Layer, chain 196) - VERIFIED, real reads. Reads of FAB_TST circuits (e.g. id=65) use `0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6`.
 - FAB-Genesis NFT: `0xBe6f94115D32f3AC3252bc4626573e739bEeb714` - VERIFIED (BUILD.md section 3).
-- ForgeRegistry: `0xAFDd108b0efCC1FF4d1e1d32579F80501774912d` (X Layer, chain 196), deployed
-  2026-10-20, tx `0xad495798672b4d9c7dc4b2bdce16b64c6795fb1fad89fac469f8be327c74cc66`
-  (receipt status=1). VERIFIED: re-read from the chain on 2026-10-26 with `scripts/verify-live.sh`
-  (read-only); the five showcase entries below return the submitter `0x1F4d4B97d9cFD57b2F5CED5b87249ECCa95920E5`; the four test entries return `0x155d4248621Bf2601A9F9171327b8081D302b171`.
+- ForgeRegistry v2 (canonical): `0xD304F09ba30c41196a6a3C66EBb117184306A06F` (X Layer, chain 196), deployed 2026-10-26, tx
+  `0x35f2670b12b7af4907f57933a2394bc5b04eb74708e4061e9e5d83f203ce3748` (receipt status=1) from the project wallet. VERIFIED: the five showcase entries (circuit ids 6 to 10)
+  were registered here with correct depths and re-read on 2026-10-26 with `scripts/verify-live.sh` (read-only); all return
+  the submitter `0x1F4d4B97d9cFD57b2F5CED5b87249ECCa95920E5`.
+- ForgeRegistry v1 (superseded): `0xAFDd108b0efCC1FF4d1e1d32579F80501774912d`, deployed 2026-10-20, tx
+  `0xad495798672b4d9c7dc4b2bdce16b64c6795fb1fad89fac469f8be327c74cc66`. It holds the same five showcase entries at depth 0
+  (immutable, cannot be corrected) plus four additional test registrations (ids 11 to 14, submitter
+  `0x155d4248621Bf2601A9F9171327b8081D302b171`).
 - Real tape-outs: five showcase circuits (ids 6 to 10, table below) plus four additional test registrations (ids 11 to 14, see docs/TAPEOUTS.md and docs/ONCHAIN-TESTS.md), all on the OrderGuard processor `0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`,
-  each registered in ForgeRegistry (full table: docs/TAPEOUTS.md). The other 13 verified-beat
+  each registered in ForgeRegistry (full tables: docs/TAPEOUTS.md). The other 13 verified-beat
   circuits in the gallery have **not** been tapped out.
 
   | task | circuit id | tape-out tx | register tx | status |
@@ -80,8 +84,8 @@ keeps coming back as the task bank and the field of competing circuits change ov
   | GC-046 | 10 | `0x5a358239bfa6f2fa6f190690197fc3396752231b6639bc9d32bf3094610013e5` | `0x3fdf3bad07b41b4bba4a8664a6b377ccb0d3bd4c645e35cd997cdcad102a6278` | attestation-only (8 inputs), not verified on-chain via processor.eval |
 
 - Silicon export GitHub Actions run (task 12, GC-012):
-  https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/39150702389 - real synthesis
-  + DRC pass, GDS sha256 `1857e6b1325f19d65bd4647d9ca18c166d2c0ea3dc88464a21ad59729eadf256`.
+  https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/40368814040 - real synthesis
+  + DRC pass, GDS sha256 `1b499ee47227f969890580ff8f32fd288e2d41c0fe06f5067fe9749f18002e5e`.
   Status: exported only - not submitted to Tiny Tapeout, not fabricated, not paid for.
 
 ## Access link
@@ -114,11 +118,12 @@ Not recorded yet, so there is no link to give. The 3-minute script and exact com
   We do not claim a physical chip exists. The generated Tiny Tapeout project still fails two CI
   jobs (`viewer`: GitHub Pages is not enabled on that repo; `gl_test`: no cocotb testbench was
   written for it); the GDS build and the 15/15 precheck checks pass (docs/SILICON.md).
-- **Registry depth.** The six registry entries registered before 2026-10-26's fix (the five showcase circuits
-  and test entry GC-007) carry `depth = 0`. The registry is immutable and prices depth 0 as 1 (`gates x 1`
-  instead of `gates x depth^3`), so those entries cannot be corrected and misprice the registry's "best"
-  comparison. The registry also takes `gates`, `depth`, `nIn` and `nOut` from the caller without checking them
-  against the processor. Entries 12 to 14 carry correct depths. Details and the cost of a clean v2: docs/ONCHAIN-TESTS.md.
+- **Registry v1 depth.** Registry v1's entries registered before the 2026-10-26 fix (the five showcase circuits and test
+  entry GC-007) carry `depth = 0`. v1 is immutable and prices depth 0 as 1 (`gates x 1` instead of `gates x depth^3`), so
+  those entries cannot be corrected and misprice v1's "best" comparison. The five showcase circuits were therefore
+  re-registered in registry v2 with real depths, which is the canonical registry. Both registries take `gates`, `depth`,
+  `nIn` and `nOut` from the caller without checking them against the processor, so costs are self-reported.
+  Test entries 11 to 14 exist in v1 only. Details: docs/ONCHAIN-TESTS.md.
 - **What "verified on-chain via processor.eval" means.** The registry checks that the caller's expected
   outputs equal the processor's `eval()` of that same circuit, for up to 6 inputs. It does not check the circuit
   against the task's specification; that comparison is done off-chain (`verify-live.sh`, the independent verifier).

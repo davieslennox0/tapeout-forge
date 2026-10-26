@@ -1,6 +1,6 @@
 # On-chain tests, 2026-10-26
 
-A separate throwaway test wallet (`0x155d4248621Bf2601A9F9171327b8081D302b171`, funded with about 0.036 OKB) ran this project's scripts against the real X Layer registry (`0xAFDd108b0efCC1FF4d1e1d32579F80501774912d`) and the OrderGuard processor (`0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`). It spent about 0.017 OKB. Its four registry entries are the "additional test registrations" (ids 11 to 14) in docs/TAPEOUTS.md, separate from the five showcase circuits (ids 6 to 10), so the registry holds nine entries. The wallet's key and keystore password live outside this repository and are not tracked.
+A separate throwaway test wallet (`0x155d4248621Bf2601A9F9171327b8081D302b171`, funded with about 0.036 OKB) ran this project's scripts against the real X Layer registry v1 (`0xAFDd108b0efCC1FF4d1e1d32579F80501774912d`, since superseded by v2 `0xD304F09ba30c41196a6a3C66EBb117184306A06F`) and the OrderGuard processor (`0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`). It spent about 0.017 OKB. Its four registry entries are the "additional test registrations" (ids 11 to 14) in docs/TAPEOUTS.md, separate from the five showcase circuits (ids 6 to 10), so the registry holds nine entries. The wallet's key and keystore password live outside this repository and are not tracked.
 
 | task | in/out | path | circuit | mint tx | tape-out tx | register tx | registry entry |
 |---|---|---|---|---|---|---|---|
@@ -37,7 +37,7 @@ Also exercised, with no spend: re-submitting an equal-cost circuit reverts with 
 
 A challenger's honest submission for these six specs is compared against the understated cost, so it can be rejected as `NotStrictlyBetter` even when it is truly cheaper.
 
-### A clean v2 registry: cost and impact (not deployed)
+### A clean v2 registry: cost and impact (estimate made before deploying; v2 was then deployed, see the follow-up section)
 
 - **Cost.** Deploying the registry used 460,958 gas on the fork. Registering the circuits again (the circuits already exist on the processor, so no new mint or tape-out fee) used 119,121 to 2,391,792 gas per entry in the live runs, each under 0.00005 OKB at today's price. Redeploy plus re-registering the six affected entries is well under 0.001 OKB in total, and under 0.002 OKB if the three correct test entries are re-registered too.
 - **Impact.**
@@ -45,8 +45,16 @@ A challenger's honest submission for these six specs is compared against the und
   - v1 stays on-chain forever with the six depth-0 entries, so the docs must say v1 is superseded.
   - Because the registry cannot link to its predecessor, a reader following old links still lands on the mispriced entries.
   - If v2 should also stop self-reported cost, it needs to read gates from `circuitInfo` and compute depth from the on-chain netlist inside the contract. That raises gas roughly in proportion to the gate count and needs new tests; it is a design change, not just a redeploy.
-- **Decision needed from the owner:** redeploy a v2 with corrected re-registration (cheap), or keep v1 and document the six entries as a known limit (this document and docs/SUBMISSION.md already do).
+- **Decision:** the owner approved the cheap option (redeploy and re-register); done, see the follow-up section below.
 
 ## Nandout, read-only
 
 Our local simulation was compared with the real `eval()` of Nandout's processor on sampled inputs (12 per circuit) for its 10 combinational circuits: 120 of 120 match. Circuit 6 holds a latch, so `eval()` reverts and it was skipped. Nothing of Nandout's was modified. See docs/NANDOUT-CASE-STUDY.md.
+
+## Follow-up (same day): registry v2 deployed, test wallet swept
+
+After the findings above, the owner approved a clean v2:
+
+- **Sweep.** The test wallet sent its balance (0.019140531883932398 OKB, i.e. its balance minus three times the transfer fee) to the project wallet `0x1F4d4B97d9cFD57b2F5CED5b87249ECCa95920E5`, tx `0x854b53e388d4b417e1d9ba1bf21495e80d6a10d9572a66ad3f8a7d0f3ca86e37` (status 1); the project wallet's balance rose by exactly that amount. About 0.00000084 OKB of dust stayed behind. The test wallet's key file, password file and keystore were then shredded.
+- **Registry v2.** `0xD304F09ba30c41196a6a3C66EBb117184306A06F`, deploy tx `0x35f2670b12b7af4907f57933a2394bc5b04eb74708e4061e9e5d83f203ce3748` (status 1, 460,958 gas, 0.0000092 OKB), from the project wallet. Runtime bytecode identical to v1 (1,834 bytes; only the compiler metadata hash differs). The five showcase circuits (ids 6 to 10) were registered in v2 with real depths 8, 9, 7, 7, 10, for a few tens of thousandths of a milli-OKB each (no new mint or tape-out); `verify-live.sh` returned `SUMMARY: PASS` for all five and the registry flags read true, true, true, true, false (GC-046 is attestation-only). Register txs are in docs/TAPEOUTS.md.
+- **Not changed.** v1 stays on-chain with its depth-0 entries and the four test registrations. v2 still takes gates and depth from the caller; it does not read them from the processor.

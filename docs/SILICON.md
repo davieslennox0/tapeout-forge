@@ -46,14 +46,14 @@ FabX replay - was exported via `forge export-silicon 12` and pushed to
 github.com/davieslennox0/maj3-silicon-spike (a repo this account owns, cloned from the official
 Tiny Tapeout `ttsky` template; same safe pattern as the earlier feasibility spike).
 
-Real GitHub Actions run: https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/39150702389
+Real GitHub Actions run: https://github.com/davieslennox0/maj3-silicon-spike/actions/runs/40368814040
 
 | | |
 |---|---|
 | Synthesis (`gds` job) | ✅ passed |
 | Tiny Tapeout precheck (`precheck` job) | ✅ passed, 15/15 checks (Magic DRC, KLayout FEOL/BEOL/offgrid/pin-label/zero-area, pin/boundary/power-pin/layer/cell-name/urpm-nwell/analog-pin checks, Verilog syntax) |
 | Cell count | 34 cells, 173.9168 &micro;m&sup2; |
-| GDS sha256 | `1857e6b1325f19d65bd4647d9ca18c166d2c0ea3dc88464a21ad59729eadf256` |
+| GDS sha256 | `1b499ee47227f969890580ff8f32fd288e2d41c0fe06f5067fe9749f18002e5e` (final `tt_submission` GDS of run 40368814040, 625,450 bytes) |
 | Overall workflow status | shows `failure` - but only because two UNRELATED jobs fail: `viewer` (GitHub Pages isn't enabled on that repo - a cosmetic visualization deploy, nothing to do with the design) and `gl_test` (needs a cocotb testbench that was never written for this spike repo). Neither affects the synthesis/DRC result above. |
 
 This is the second circuit independently confirmed through this exact real pipeline (the first,
@@ -74,3 +74,5 @@ relying on them for a real submission.
 See docs/USER-STEPS.md. In short: push the exported directory into a real `ttsky`-template
 clone, confirm the Actions flow is green, then go to tinytapeout.com yourself, pick an open
 shuttle, and pay there. Nothing here automates that step, on purpose.
+
+**Re-run note (2026-10-26).** The spike repository's history was rewritten (author identity and removal of an unrelated file), which changed its commit hashes, so the CI was run again on the new head `1da583a6` (run 40368814040). Same Verilog (byte-identical to the previous head), same results: `gds` and `precheck` succeed (15 of 15 precheck rows), `gl_test` and `viewer` fail as documented, synthesis reports 34 cells and 173.9168 um^2. The GDS file hash differs from the earlier run's (`1857e6b1325f19d65bd4647d9ca18c166d2c0ea3dc88464a21ad59729eadf256`, run 39150702389, which is superseded and no longer matches any commit): the layout was regenerated and its bytes are not identical; the cause (for example embedded timestamps) was not investigated. The magic-streamout GDS is 625,450 bytes (`1b499ee47227f969890580ff8f32fd288e2d41c0fe06f5067fe9749f18002e5e`); the KLayout-streamed copy in the same run is 376,798 bytes (`b0f8617bdb846cb83616b767ab4172341e5f205d79c16027519f8645d7edf7be`).

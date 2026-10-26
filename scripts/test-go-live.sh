@@ -92,7 +92,7 @@ echo "== test 6: registry resume - a SECOND invocation with FORGE_REGISTRY_ADDRE
 # fork IS the real chain's state as of when anvil started.
 unset FORGE_REGISTRY_ADDRESS
 OUT=$(FORGE_RPC_URL="$RPC" bash "$ROOT/scripts/go-live.sh" my-forgeout-key --variant gc014 2>&1)
-echo "$OUT" | grep -q "SKIP (resumed): FORGE_REGISTRY_ADDRESS=0xAFDd108b0efCC1FF4d1e1d32579F80501774912d already has real code" \
+echo "$OUT" | grep -q "SKIP (resumed): FORGE_REGISTRY_ADDRESS=0xD304F09ba30c41196a6a3C66EBb117184306A06F already has real code" \
   && ok "defaults to the real deployed registry and skips redeploying, with FORGE_REGISTRY_ADDRESS left completely unset" \
   || bad "did not resume correctly - would have attempted a redeploy"
 echo "$OUT" | grep -q "estimating real deployment gas" \
