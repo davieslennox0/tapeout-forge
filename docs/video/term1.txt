@@ -1,0 +1,7 @@
+$ cat maj.expr
+(a&b)|(a&c)|(b&c)
+
+$ forge optimize maj.expr --format expr --objective area
+after: gates=6 depth=4 (with 2*nOut buffers: gates=8 depth=6) gas=59399 C(no-buf)=384 C(buf)=1728
+verified: true (method=exhaustive, direct truth-table comparison)
+netlist (area, nIn=3, nOut=1): 0x000000020000030000000300000400000002000004000000060000070000000800000800000005000009

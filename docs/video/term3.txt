@@ -1,0 +1,10 @@
+$ python3 packages/core/scripts/verify_independent.py
+task   7 (GC-007 双输入同或门): nIn=2 nOut=1 gates=7 Cref=1512 OK
+task  12 (GC-012 四到二独热编码与错误检测器): nIn=4 nOut=4 gates=56 Cref=496000 OK
+task  13 (GC-013 四位相等比较器): nIn=8 nOut=1 gates=29 Cref=48384 OK
+  ...
+task  53 (GC-053 带使能的四位一分四分配器): nIn=7 nOut=16 gates=144 Cref=59778 OK
+task  54 (GC-054 四位可变逻辑移位器): nIn=7 nOut=4 gates=73 Cref=155987 OK
+task  55 (GC-055 四位可变循环移位器): nIn=7 nOut=4 gates=88 Cref=186745 OK
+
+22 tasks, 25856 output-bit comparisons, 0 mismatches.

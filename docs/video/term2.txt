@@ -1,0 +1,10 @@
+$ forge replay
+Counts: beat 22 / tie 11 / lose 13 / skip 0 (of 46 attempted). At the 4x q-cap: 1/46. Median q: 1.000.
+
+task  12 (GC-012 四到二独热编码与错误检测器): 4/4 Cref=496000 bestC=28672 q=4.000 obj=area beat
+task  46 (GC-046 八路低位优先编码器): 8/4 Cref=367416 bestC=92000 q=3.994 obj=depth beat
+task  45 (GC-045 八位字尾随零计数器): 8/4 Cref=334084 bestC=93000 q=3.592 obj=depth beat
+task  43 (GC-043 八位字置位计数器): 8/4 Cref=2780346 bestC=889253 q=3.127 obj=area beat
+task  44 (GC-044 八位字前导零计数器): 8/4 Cref=334084 bestC=113135 q=2.953 obj=area beat
+task  54 (GC-054 四位可变逻辑移位器): 7/4 Cref=155987 bestC=53217 q=2.931 obj=area beat
+task  55 (GC-055 四位可变循环移位器): 7/4 Cref=186745 bestC=64152 q=2.911 obj=depth beat

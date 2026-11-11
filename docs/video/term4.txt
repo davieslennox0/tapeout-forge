@@ -1,0 +1,5 @@
+$ forge verify-onchain --processor 0x87BFCa3494Aa228fF589ab9B642143A5e8c8F9a6 --id 65 --inputs 0x07
+onchain output bits: [1]
+local simulation:     [1]
+match: true
+note: Compared against the REAL on-chain netlist, fetched via netlist(id) (VERIFIED ABI, see getNetlistBytes docstring) - not user-supplied.

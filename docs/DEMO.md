@@ -1,6 +1,6 @@
 # Demo script (BUILD.md 3.5) - 3:00 max, leads with the replay result
 
-Not recorded yet. Exact commands/clicks below so recording it is mechanical.
+Recorded 2026-11-11 as a shorter cut (2:25): see [`video/`](video/) for the video, its scene list and how it was made. The longer script below is kept for reference.
 
 ## 0:00-0:35 - Lead with the strongest, most verifiable claim
 
@@ -56,9 +56,9 @@ Screen: terminal.
 forge calldata netlist.hex --nin 4 --nout 1
 ```
 Say: "This builds the real tapeout() calldata against the real fee schedule on X Layer - real
-ABI, real fees, verified live on a fork. It never sends anything. Five showcase circuits (GC-012, GC-037, GC-050, GC-014, GC-046) are already tapped out and registered by the
+ABI, real fees, verified live on a fork. It never sends anything. Five showcase circuits (GC-012, GC-037, GC-050, GC-014, GC-046) are already taped out and registered by the
 owner with their own key - docs/TAPEOUTS.md has every transaction. The other 13 gallery circuits are
-not tapped out. We'd rather say that than overstate it."
+not taped out. We'd rather say that than overstate it."
 
 Optional, if time remains: "We went one step further for one circuit - `forge export-silicon`
 generated a real Tiny Tapeout repo, and we ran Tiny Tapeout's own CI on it for real. Synthesis
