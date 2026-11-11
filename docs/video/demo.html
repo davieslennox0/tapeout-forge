@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>ForgeOut demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0D0F11;--panel:#14171A;--panel2:#101315;--border:#262B31;--border3:#3A4149;--text:#E8EAEC;--muted:#B7BEC4;--dim:#8D969E;--accent:#E0904F;--accent2:#F2B07A;--ok:#6FCF97;--bad:#D9695F;
+--sans:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',monospace;--display:'Bricolage Grotesque',system-ui,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1280px;height:720px;overflow:hidden;background:var(--bg)}
+body{font-family:var(--sans);color:var(--text)}
+#stage{position:relative;width:1280px;height:720px;overflow:hidden;background:var(--bg)}
+.sheet{position:absolute;inset:14px;border:1px solid var(--border);pointer-events:none}
+.sheet:before,.sheet:after{content:'';position:absolute;width:18px;height:18px;border:2px solid var(--accent)}
+.sheet:before{left:-2px;top:-2px;border-right:0;border-bottom:0}.sheet:after{right:-2px;bottom:-2px;border-left:0;border-top:0}
+#traces{position:absolute;inset:0;opacity:.5}
+.display{font-family:var(--display);font-weight:700;letter-spacing:-.02em;line-height:1.02}
+.kicker{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.brand{display:flex;align-items:center;gap:12px;font-family:var(--display);font-weight:700;font-size:24px}
+#topbar{position:absolute;left:48px;top:28px;right:48px;display:flex;justify-content:space-between;align-items:center;z-index:5}
+#stepcount{font-family:var(--mono);font-size:13px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase}
+#progress{position:absolute;left:0;bottom:0;height:5px;width:100%;background:rgba(255,255,255,.07);z-index:6}
+#progress i{display:block;height:100%;width:0;background:var(--accent)}
+#fine{position:absolute;left:48px;bottom:16px;font-size:12px;color:var(--dim);z-index:5}
+.scene{position:absolute;inset:0;opacity:0;pointer-events:none}
+.cap{position:absolute;left:48px;top:140px;width:372px}
+.badge{min-width:46px;height:46px;padding:0 14px;border-radius:23px;background:var(--accent);color:#0D0F11;display:inline-grid;place-items:center;font-family:var(--display);font-weight:700;font-size:22px;margin-bottom:22px}
+.cap h2{font-family:var(--display);font-weight:700;font-size:52px;line-height:1.02;letter-spacing:-.02em}
+.cap p{margin-top:20px;font-size:19px;line-height:1.45;color:var(--muted);min-height:140px}
+.view{position:absolute;left:450px;top:96px;width:790px;height:580px}
+.card{position:absolute;inset:0;background:var(--panel);border:1px solid var(--border);border-radius:20px;box-shadow:0 30px 70px -30px rgba(0,0,0,.9);overflow:hidden}
+.browser{width:790px;height:580px;border-radius:18px;overflow:hidden;background:var(--bg);border:1px solid var(--border3);box-shadow:0 30px 70px -30px rgba(0,0,0,.9)}
+.bbar{height:42px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--border);background:var(--panel)}
+.dot{width:12px;height:12px;border-radius:50%}
+.url{margin-left:14px;flex:1;height:26px;border-radius:99px;background:var(--bg);display:flex;align-items:center;padding:0 14px;font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+.vp{position:relative;height:538px;overflow:hidden;background:var(--bg)}
+.vp img{position:absolute;left:0;top:0;width:790px;display:block}
+.ptr{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:rgba(224,144,79,.35);border:2px solid var(--accent);z-index:4}
+.ring{position:absolute;border:2px solid var(--accent);border-radius:10px;box-shadow:0 0 0 6px rgba(224,144,79,.18);z-index:3}
+/* gates */
+.tiles{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+.gate{height:86px;border-radius:14px;border:1px solid var(--border3);background:var(--panel2);display:grid;place-items:center;position:relative}
+.gate small{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:10.5px;color:var(--accent)}
+.meter{height:12px;border-radius:6px;background:var(--border);overflow:hidden}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--bad))}
+.lab{font-family:var(--mono);font-size:13px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;position:absolute;left:96px;right:96px;top:300px}
+.stepc{background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:30px 28px;height:270px}
+.stepc .n{font-family:var(--mono);color:var(--accent);font-size:15px}
+.stepc h3{font-family:var(--display);font-size:40px;margin:14px 0 14px}
+.stepc p{color:var(--muted);font-size:17px;line-height:1.45}
+table.tt{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:19px}
+table.tt th{font-size:13px;color:var(--dim);font-weight:500;letter-spacing:.06em;text-transform:uppercase;padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)}
+table.tt td{padding:9.5px 10px;text-align:center;border-bottom:1px solid var(--border)}
+.tick{color:var(--ok);font-weight:600}
+.term{position:absolute;inset:0;background:#0A0C0E;border:1px solid var(--border3);border-radius:18px;overflow:hidden;box-shadow:0 30px 70px -30px rgba(0,0,0,.9)}
+.term .bar{height:40px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--border);background:var(--panel);font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+.term .body{padding:18px 22px;font-family:var(--mono);font-size:15px;line-height:1.62;color:var(--muted)}
+.term .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:1.62em}
+.term .cmd{color:var(--text)}.term .cmd:before{content:'$ ';color:var(--accent)}
+.term .good{color:var(--ok)}
+.caret{display:inline-block;width:8px;height:1.05em;background:var(--accent);margin-left:2px;vertical-align:-3px}
+.stats{position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:14px;padding:18px;background:linear-gradient(transparent,#0A0C0E 26%)}
+.stat{background:var(--panel);border:1px solid var(--border3);border-radius:16px;padding:16px 18px}
+.stat b{display:block;font-family:var(--display);font-size:46px;line-height:1}
+.stat span{font-size:14px;color:var(--muted)}
+.dots{display:grid;grid-template-columns:repeat(20,1fr);gap:9px}
+.dots i{aspect-ratio:1;border-radius:50%;background:var(--border)}
+.legend{display:flex;gap:26px;font-size:17px;color:var(--muted);align-items:center}
+.legend b{font-family:var(--display);font-size:34px;color:var(--text);margin-right:8px}
+.sw{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px}
+.hbar{height:44px;border-radius:10px;display:flex;align-items:center;padding:0 14px;font-family:var(--mono);font-size:16px;white-space:nowrap}
+.flow{position:absolute;left:24px;right:24px;bottom:22px;display:flex;align-items:center;justify-content:center;gap:14px;background:rgba(13,15,17,.93);border:1px solid var(--border3);border-radius:16px;padding:16px;font-size:17px;z-index:4}
+.flow span{padding:8px 16px;border-radius:99px;border:1px solid var(--border3);background:var(--panel)}
+.flow em{color:var(--accent);font-style:normal;font-size:20px}
+.bullets{margin-top:30px;display:grid;gap:16px;font-size:23px;color:var(--muted)}
+.bullets li{list-style:none;display:flex;gap:16px;align-items:center}
+.bullets li:before{content:'';width:12px;height:12px;border-radius:50%;background:var(--accent);flex:0 0 12px}
+</style></head>
+<body><div id="stage">
+<svg id="traces" viewBox="0 0 1280 720" fill="none" stroke="#1C2126" stroke-width="1.5"><path d="M880 14V70h120v60M1040 14v36h150v110M1266 250h-60v90h-40M14 560h70v60h90M14 640h40v66M300 706v-40h110v-30M1266 520h-90v70h-70v116"/><g fill="#1C2126" stroke="none"><circle cx="1000" cy="130" r="4"/><circle cx="1190" cy="160" r="4"/><circle cx="1166" cy="340" r="4"/><circle cx="174" cy="620" r="4"/><circle cx="410" cy="636" r="4"/></g></svg><div class="sheet"></div>
+<div id="topbar"><div class="brand"><svg width="34" height="34" viewBox="0 0 28 28"><rect x="1" y="1" width="26" height="26" rx="6" fill="#E0904F"/><path d="M8 9h7a5 5 0 0 1 0 10H8z" fill="none" stroke="#0D0F11" stroke-width="2.2" stroke-linejoin="round"/><circle cx="21.5" cy="14" r="1.6" fill="#0D0F11"/></svg>ForgeOut</div><div id="stepcount"></div></div>
+<div id="fine">Real screenshots of forgeout.xyz and real terminal output. Drawings marked as illustrations. Synthetic narration.</div>
+<div id="progress"><i></i></div>
+
+<!-- 1 title -->
+<section class="scene" id="s1">
+  <div style="position:absolute;left:96px;top:180px;width:1050px">
+    <p class="kicker">How it works · for builders, backers and the curious</p>
+    <h1 class="display" style="font-size:92px;margin-top:22px">Smaller circuits,<br><span style="color:var(--accent)">checked identical.</span></h1>
+    <p id="cp_s1" style="margin-top:32px;font-size:27px;color:var(--muted);width:640px;line-height:1.4;min-height:120px"></p>
+  </div>
+  <svg id="biggate" style="position:absolute;right:64px;top:262px" width="270" height="188" viewBox="0 0 330 230" fill="none" stroke="#E0904F" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path class="dr" d="M10 70h70M10 160h70"/><path class="dr" d="M80 30h80a85 85 0 0 1 0 170H80z"/><circle class="dr" cx="262" cy="115" r="15"/><path class="dr" d="M279 115h42"/>
+  </svg>
+  <div id="gatelab" style="position:absolute;right:44px;top:466px;width:310px;text-align:center" class="lab">NAND · the only gate a circuit needs</div>
+</section>
+
+<!-- 2 the problem -->
+<section class="scene" id="s2">
+  <aside class="cap"><div class="badge">Why</div><h2>Every gate<br>costs you</h2><p id="cp_s2"></p></aside>
+  <div class="view"><div class="card" style="padding:34px 36px">
+    <div style="display:flex;justify-content:space-between"><span class="lab">A circuit on X Layer</span><span class="lab">Illustration</span></div>
+    <div class="tiles" id="tiles" style="margin-top:22px"></div>
+    <div id="costbox" style="margin-top:34px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span class="lab">What you pay</span><span class="lab" id="costlab" style="color:var(--accent)"></span></div>
+      <div class="meter"><i id="meter"></i></div>
+      <div style="display:flex;gap:12px;margin-top:16px;font-size:16px;color:var(--muted)"><span>Mint fee per gate</span><span>+</span><span>Gas per gate, on every run</span></div>
+    </div>
+    <div id="samebox" style="position:absolute;left:36px;right:36px;bottom:34px;border:1px solid var(--border3);border-radius:16px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;background:var(--panel2)">
+      <div><div class="display" style="font-size:30px">Fewer gates, same answers?</div><div style="color:var(--muted);font-size:16px;margin-top:6px">It has to match on every input, or it is a different circuit.</div></div>
+      <div id="samecheck" style="width:58px;height:58px;border-radius:50%;background:var(--ok);color:#0D0F11;display:grid;place-items:center;font-size:32px;font-weight:700">✓</div>
+    </div>
+  </div></div>
+</section>
+
+<!-- 3 three steps -->
+<section class="scene" id="s3">
+  <div style="position:absolute;left:96px;top:120px;width:1080px"><p class="kicker">The whole product</p>
+    <h1 class="display" style="font-size:64px;margin-top:14px">Three steps.</h1>
+    <p id="cp_s3" style="margin-top:14px;font-size:22px;color:var(--muted);min-height:34px"></p></div>
+  <div class="steps">
+    <div class="stepc" id="st1"><div class="n">01</div><h3>Optimize</h3><p>Find a smaller or shallower circuit that computes the same function.</p></div>
+    <div class="stepc" id="st2"><div class="n">02</div><h3>Prove</h3><p>Check the result against the original on every input, then check again with a second tool.</p></div>
+    <div class="stepc" id="st3"><div class="n">03</div><h3>Tape out</h3><p>Copy the ready-made calldata and send it from your own wallet on X Layer.</p></div>
+  </div>
+</section>
+
+<!-- 4 optimize -->
+<section class="scene" id="s4">
+  <aside class="cap"><div class="badge">1</div><h2>Optimize<br>a circuit</h2><p id="cp_s4"></p></aside>
+  <div class="view"><div class="browser"><div class="bbar"><i class="dot" style="background:#D9695F"></i><i class="dot" style="background:#E0B04F"></i><i class="dot" style="background:#6FCF97"></i><div class="url">forgeout.xyz/#optimizer</div></div>
+    <div class="vp"><div id="optwrap" style="position:absolute;left:0;top:0;width:790px">
+      <img id="im_a" src="assets/shot_opt_a.png"><img id="im_b" src="assets/shot_opt_b.png"><img id="im_c" src="assets/shot_opt_c.png">
+      <div class="ring" id="ring4"></div><div class="ptr" id="ptr4"></div></div></div></div></div>
+</section>
+
+<!-- 5 prove -->
+<section class="scene" id="s5">
+  <aside class="cap"><div class="badge">2</div><h2>Prove it's<br>the same</h2><p id="cp_s5"></p></aside>
+  <div class="view">
+    <div class="card" id="ttcard" style="padding:26px 34px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span class="lab">Majority of three · every input row</span><span class="lab" id="ttcount" style="color:var(--ok)"></span></div>
+      <table class="tt"><thead><tr><th>a</th><th>b</th><th>c</th><th>Original</th><th>ForgeOut · 6 gates</th><th>Match</th></tr></thead><tbody id="ttbody"></tbody></table>
+    </div>
+    <div class="term" id="term5"><div class="bar"><i class="dot" style="background:#D9695F"></i><i class="dot" style="background:#E0B04F"></i><i class="dot" style="background:#6FCF97"></i><span style="margin-left:10px">independent verifier · Python, no shared code · real output</span></div><div class="body" id="t5body"></div>
+      <div class="stats" id="stats"><div class="stat"><b id="n1">0</b><span>circuits re-checked</span></div><div class="stat"><b id="n2">0</b><span>output bits compared</span></div><div class="stat"><b id="n3" style="color:var(--ok)">0</b><span>mismatches</span></div></div></div>
+  </div>
+</section>
+
+<!-- 6 results -->
+<section class="scene" id="s6">
+  <aside class="cap"><div class="badge">Proof</div><h2>Tested on<br>real tasks</h2><p id="cp_s6"></p></aside>
+  <div class="view"><div class="card" style="padding:30px 36px">
+    <div id="bank">
+      <div style="display:flex;justify-content:space-between;margin-bottom:18px"><span class="lab">FabX task bank · 100 tasks</span><span class="lab" id="banklab"></span></div>
+      <div class="dots" id="dots"></div>
+      <div class="legend" id="legend" style="margin-top:26px"><span><i class="sw" style="background:var(--ok)"></i><b>22</b>beat</span><span><i class="sw" style="background:var(--dim)"></i><b>11</b>tied</span><span><i class="sw" style="background:var(--bad)"></i><b>13</b>lost</span></div>
+    </div>
+    <div id="gcbox" style="position:absolute;left:36px;right:36px;bottom:30px;border-top:1px solid var(--border);padding-top:22px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><span><span class="display" style="font-size:26px;margin-right:12px">GC-012</span><span style="color:var(--muted);font-size:16px">4-to-2 one-hot encoder with error detector</span></span><span class="display" id="x17" style="font-size:34px;color:var(--accent)">17× lower</span></div>
+      <div class="hbar" id="refbar" style="background:var(--border3);width:0">FabX reference · 496,000</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:10px"><div class="hbar" id="ourbar" style="background:var(--accent);width:0;padding:0"></div><span id="ourlab" style="font-family:var(--mono);font-size:16px;color:var(--accent2)">ForgeOut · 28,672</span></div>
+      <div style="margin-top:10px;font-size:13.5px;color:var(--dim)">Cost C = gates × depth³. FabX caps the score at 4.0×, which is what this task scores.</div>
+    </div>
+  </div></div>
+</section>
+
+<!-- 7 tape out -->
+<section class="scene" id="s7">
+  <aside class="cap"><div class="badge">3</div><h2>Tape out<br>on X Layer</h2><p id="cp_s7"></p></aside>
+  <div class="view"><div class="browser"><div class="bbar"><i class="dot" style="background:#D9695F"></i><i class="dot" style="background:#E0B04F"></i><i class="dot" style="background:#6FCF97"></i><div class="url" id="url7">forgeout.xyz/#checked</div></div>
+    <div class="vp"><img id="im_gal" src="assets/shot_gallery.png"><img id="im_reg" src="assets/shot_registry.png">
+      <div class="flow" id="flow"><span>Copy calldata</span><em>→</em><span>Your wallet signs</span><em>→</em><span>Circuit on X Layer</span></div></div></div></div>
+</section>
+
+<!-- 8 developers -->
+<section class="scene" id="s8">
+  <aside class="cap"><div class="badge">Dev</div><h2>A CLI for<br>developers</h2><p id="cp_s8"></p></aside>
+  <div class="view"><div class="term"><div class="bar"><i class="dot" style="background:#D9695F"></i><i class="dot" style="background:#E0B04F"></i><i class="dot" style="background:#6FCF97"></i><span style="margin-left:10px">forge · real output, long lines cut short</span></div><div class="body" id="t8body"></div></div></div>
+</section>
+
+<!-- silicon path -->
+<section class="scene" id="sc">
+  <aside class="cap"><div class="badge">Chip</div><h2>A path to<br>silicon</h2><p id="cp_sc"></p></aside>
+  <div class="view"><div class="browser"><div class="bbar"><i class="dot" style="background:#D9695F"></i><i class="dot" style="background:#E0B04F"></i><i class="dot" style="background:#6FCF97"></i><div class="url">forgeout.xyz/#silicon</div></div>
+    <div class="vp"><img id="im_sil" src="assets/shot_silicon.png" style="top:58px">
+      <div class="flow" id="ladder" style="left:0;right:0;top:0;bottom:auto;height:58px;border-radius:0;border:0;border-bottom:1px solid var(--border3);background:#101315;padding:0"><span class="lab" style="border:0;background:none;padding:0;margin-right:8px">Where GC-012 stands</span><span id="ld1" style="border-color:var(--ok);color:var(--ok)">Exported ✓</span><em>→</em><span style="opacity:.45">Submitted</span><em>→</em><span style="opacity:.45">Fabricated</span></div>
+      <div id="silbox" style="position:absolute;left:24px;right:24px;bottom:22px;background:rgba(13,15,17,.96);border:1px solid var(--accent);border-radius:16px;padding:18px 22px;font-size:17.5px;line-height:1.45;z-index:4"><span class="lab" style="color:var(--accent)">Exact status</span><br>Tapeout-ready export. We have not ordered fabrication. Ordering is a separate paid step that the circuit owner completes on Tiny Tapeout. We do not claim a physical chip exists.</div></div></div></div>
+</section>
+
+<!-- 9 outro -->
+<section class="scene" id="s9">
+  <div style="position:absolute;left:96px;top:140px;width:1080px">
+    <p class="kicker">What we don't claim</p>
+    <h1 class="display" style="font-size:76px;margin-top:16px">Real numbers.<br><span style="color:var(--accent)">Stated limits.</span></h1>
+    <ul class="bullets"><li id="b1">Smallest-possible is proven only up to three inputs</li><li id="b2">The reference still wins 13 of the 46 tasks</li><li id="b3">No reward predictions, no fabrication claims</li></ul>
+    <div id="url9" style="margin-top:38px;display:flex;align-items:baseline;gap:28px"><span class="display" style="font-size:64px">forgeout.xyz</span><span style="font-family:var(--mono);font-size:18px;color:var(--dim)">github.com/davieslennox0/tapeout-forge</span></div>
+  </div>
+</section>
+</div>
+<script src="timeline.js"></script><script src="rects.js"></script><script src="terms.js"></script><script src="engine.js"></script>
+</body></html>

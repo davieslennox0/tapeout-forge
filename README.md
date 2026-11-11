@@ -107,7 +107,7 @@ rewarded (currently unknown). Needs at least one real builder conversation befor
 
 ## Demo video
 
-[forgeout-demo.mp4](https://github.com/davieslennox0/tapeout-forge/releases/download/demo-video/forgeout-demo.mp4) (2:25): the three steps (optimize, prove, tape out) on the live site, with real terminal output. Narration is synthetic. How it was made: [`docs/video/`](docs/video/).
+[forgeout-demo.mp4](https://github.com/davieslennox0/tapeout-forge/releases/download/demo-video/forgeout-demo.mp4) (2:43): why gates cost money, the three steps (optimize, prove, tape out), the FabX result, the CLI, the silicon path and the limits. Real site screenshots and terminal output; narration is synthetic. How it was made: [`docs/video/`](docs/video/).
 
 ## Try it
 

@@ -1,0 +1,264 @@
+{
+ "total": 162.914,
+ "scenes": [
+  {
+   "id": "s1",
+   "a": 0.0,
+   "b": 9.467,
+   "lines": [
+    {
+     "a": 0.6,
+     "b": 4.165,
+     "dur": 3.565,
+     "show": "Meet ForgeOut! Smaller on-chain circuits, checked identical.",
+     "ev": null
+    },
+    {
+     "a": 4.485,
+     "b": 8.667,
+     "dur": 4.181,
+     "show": "Whether you build circuits, fund them, or you're simply curious, here's how it works.",
+     "ev": null
+    }
+   ]
+  },
+  {
+   "id": "s2",
+   "a": 9.467,
+   "b": 25.497,
+   "lines": [
+    {
+     "a": 10.067,
+     "b": 13.864,
+     "dur": 3.797,
+     "show": "On TapeOut, a circuit is a set of NAND gates, living on X Layer.",
+     "ev": "gates"
+    },
+    {
+     "a": 14.184,
+     "b": 20.382,
+     "dur": 6.198,
+     "show": "Every gate costs money to create, and gas every time it runs. So extra gates are a cost you keep paying!",
+     "ev": "cost"
+    },
+    {
+     "a": 20.702,
+     "b": 24.697,
+     "dur": 3.995,
+     "show": "But a smaller circuit only helps if it gives exactly the same answers.",
+     "ev": "same"
+    }
+   ]
+  },
+  {
+   "id": "s3",
+   "a": 25.497,
+   "b": 31.134,
+   "lines": [
+    {
+     "a": 26.097,
+     "b": 30.334,
+     "dur": 4.237,
+     "show": "ForgeOut handles both, in three steps: optimize, prove, and tape out.",
+     "ev": "steps"
+    }
+   ]
+  },
+  {
+   "id": "s4",
+   "a": 31.134,
+   "b": 52.652,
+   "lines": [
+    {
+     "a": 31.734,
+     "b": 36.94,
+     "dur": 5.205,
+     "show": "Step one: optimize! Open forgeout.xyz. No install. No account.",
+     "ev": "open"
+    },
+    {
+     "a": 37.26,
+     "b": 41.27,
+     "dur": 4.011,
+     "show": "Paste your circuit, as a truth table, a Boolean expression, or a netlist.",
+     "ev": "paste"
+    },
+    {
+     "a": 41.59,
+     "b": 45.238,
+     "dur": 3.648,
+     "show": "Choose your goal: fewer gates, or less depth. Then press Optimize.",
+     "ev": "pick"
+    },
+    {
+     "a": 45.558,
+     "b": 51.852,
+     "dur": 6.293,
+     "show": "Done! Six NAND gates, checked equivalent, with a netlist ready to download. And it all runs in your browser.",
+     "ev": "result"
+    }
+   ]
+  },
+  {
+   "id": "s5",
+   "a": 52.652,
+   "b": 71.704,
+   "lines": [
+    {
+     "a": 53.252,
+     "b": 59.118,
+     "dur": 5.867,
+     "show": "Step two: prove! ForgeOut compares the new circuit with the original, on every possible input.",
+     "ev": "rows"
+    },
+    {
+     "a": 59.438,
+     "b": 64.383,
+     "dur": 4.945,
+     "show": "Then a second tool, written separately, with no shared code, checks the published circuits again.",
+     "ev": "second"
+    },
+    {
+     "a": 64.703,
+     "b": 70.904,
+     "dur": 6.201,
+     "show": "22 circuits. 25,856 output bits. Zero mismatches!",
+     "ev": "stats"
+    }
+   ]
+  },
+  {
+   "id": "s6",
+   "a": 71.704,
+   "b": 93.17,
+   "lines": [
+    {
+     "a": 72.304,
+     "b": 78.189,
+     "dur": 5.884,
+     "show": "So, does it work? We replayed FabX's public task bank: 46 tasks with a complete spec.",
+     "ev": "replay"
+    },
+    {
+     "a": 78.509,
+     "b": 82.592,
+     "dur": 4.083,
+     "show": "ForgeOut beat the reference on 22, tied 11, and lost 13.",
+     "ev": "bar"
+    },
+    {
+     "a": 82.912,
+     "b": 92.37,
+     "dur": 9.458,
+     "show": "The biggest win is task GC-012. Reference cost: 496,000. Ours: under 29,000. Seventeen times lower!",
+     "ev": "gc"
+    }
+   ]
+  },
+  {
+   "id": "s7",
+   "a": 93.17,
+   "b": 108.853,
+   "lines": [
+    {
+     "a": 93.77,
+     "b": 98.912,
+     "dur": 5.141,
+     "show": "Step three: tape out! Every checked circuit comes with its netlist, and ready-made calldata.",
+     "ev": "gallery"
+    },
+    {
+     "a": 99.232,
+     "b": 103.264,
+     "dur": 4.032,
+     "show": "Copy it, and send it from your own wallet. ForgeOut never holds your keys.",
+     "ev": "wallet"
+    },
+    {
+     "a": 103.584,
+     "b": 108.053,
+     "dur": 4.469,
+     "show": "Five showcase circuits are already live on X Layer, listed in ForgeRegistry.",
+     "ev": "registry"
+    }
+   ]
+  },
+  {
+   "id": "s8",
+   "a": 108.853,
+   "b": 124.243,
+   "lines": [
+    {
+     "a": 109.453,
+     "b": 113.954,
+     "dur": 4.501,
+     "show": "Developers, there's a command line tool too. forge optimize shrinks a circuit.",
+     "ev": "c1"
+    },
+    {
+     "a": 114.274,
+     "b": 118.061,
+     "dur": 3.787,
+     "show": "forge verify-onchain checks a live circuit against X Layer.",
+     "ev": "c2"
+    },
+    {
+     "a": 118.381,
+     "b": 123.443,
+     "dur": 5.062,
+     "show": "And forge calldata builds the transaction as a dry run. It never sends anything.",
+     "ev": "c3"
+    }
+   ]
+  },
+  {
+   "id": "sc",
+   "a": 124.243,
+   "b": 146.1,
+   "lines": [
+    {
+     "a": 124.843,
+     "b": 131.307,
+     "dur": 6.464,
+     "show": "There's even a path towards real silicon. ForgeOut exports a checked circuit as a Tiny Tapeout project.",
+     "ev": "exp"
+    },
+    {
+     "a": 131.627,
+     "b": 138.132,
+     "dur": 6.504,
+     "show": "We ran one through Tiny Tapeout's own checks. 15 out of 15 passed, producing a 34-cell layout.",
+     "ev": "ci"
+    },
+    {
+     "a": 138.452,
+     "b": 145.3,
+     "dur": 6.848,
+     "show": "To be clear: it's a tapeout-ready export. We have not ordered fabrication, and we do not claim a physical chip exists.",
+     "ev": "lim"
+    }
+   ]
+  },
+  {
+   "id": "s9",
+   "a": 146.1,
+   "b": 162.914,
+   "lines": [
+    {
+     "a": 146.7,
+     "b": 156.1,
+     "dur": 9.4,
+     "show": "And we're upfront about the limits. Smallest-possible is proven only up to three inputs. The reference still wins 13 tasks. And we never predict rewards.",
+     "ev": "bullets"
+    },
+    {
+     "a": 156.42,
+     "b": 162.114,
+     "dur": 5.694,
+     "show": "That's ForgeOut! Cheaper circuits, checked identical. Try it now, at forgeout.xyz.",
+     "ev": "url"
+    }
+   ]
+  }
+ ]
+}

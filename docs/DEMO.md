@@ -1,6 +1,6 @@
 # Demo script (BUILD.md 3.5) - 3:00 max, leads with the replay result
 
-Recorded 2026-11-11 as a shorter cut (2:25): see [`video/`](video/) for the video, its scene list and how it was made. The longer script below is kept for reference.
+Recorded 2026-11-11 as a different cut (2:43): see [`video/`](video/) for the video, its scene list and how it was made. The longer script below is kept for reference.
 
 ## 0:00-0:35 - Lead with the strongest, most verifiable claim
 

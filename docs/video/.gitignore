@@ -1,0 +1,6 @@
+assets/
+audio/
+frames/
+narration.wav
+*.mp4
+__pycache__/
