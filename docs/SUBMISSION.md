@@ -73,7 +73,7 @@ keeps coming back as the task bank and the field of competing circuits change ov
   `0x155d4248621Bf2601A9F9171327b8081D302b171`).
 - Real tape-outs: five showcase circuits (ids 6 to 10, table below) plus four additional test registrations (ids 11 to 14, see docs/TAPEOUTS.md and docs/ONCHAIN-TESTS.md), all on the OrderGuard processor `0x57F319CF056F72F48cF1dbb670F2A3DB007Aa355`,
   each registered in ForgeRegistry (full tables: docs/TAPEOUTS.md). The other 13 verified-beat
-  circuits in the gallery have **not** been tapped out.
+  circuits in the gallery have **not** been taped out.
 
   | task | circuit id | tape-out tx | register tx | status |
   |---|---|---|---|---|

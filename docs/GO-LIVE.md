@@ -33,7 +33,7 @@ genuinely fresh plain EOA.
 
 ## 2. Fund it
 
-**Status 2026-10-26: variant B was the one run.** The five real showcase tape-outs are GC-012, GC-037, GC-050, GC-014, GC-046 (docs/TAPEOUTS.md; four more test registrations, ids 11 to 14, are listed in its separate section); GC-039 (variant A) was not tapped out. GC-046 is attestation-only (8 inputs), not verified on-chain via processor.eval; the other four are verified on-chain via processor.eval.
+**Status 2026-10-26: variant B was the one run.** The five real showcase tape-outs are GC-012, GC-037, GC-050, GC-014, GC-046 (docs/TAPEOUTS.md; four more test registrations, ids 11 to 14, are listed in its separate section); GC-039 (variant A) was not taped out. GC-046 is attestation-only (8 inputs), not verified on-chain via processor.eval; the other four are verified on-chain via processor.eval.
 
 Two real, fork-tested options (docs/COSTS.md has the full breakdown):
 
@@ -161,7 +161,7 @@ specHash between your tape-out and register call, your submission reverts `NotSt
 
 ## 9. OPTIONAL, LAST: GC-039 (or its safer substitute, GC-014)
 
-> **Outcome (2026-10-26):** GC-014 was used; GC-039 was not tapped out.
+> **Outcome (2026-10-26):** GC-014 was used; GC-039 was not taped out.
 
 GC-039's register step is a real outlier: **18,191,899 gas**, an order of magnitude above
 every other circuit here. Before sending it for real:

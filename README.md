@@ -22,7 +22,7 @@ Prerequisites: Node 22, pnpm 9, `iverilog` (the silicon package's tests need it)
 ```
 pnpm install
 pnpm test                                   # vitest across packages (63 tests; some read X Layer, read-only; the fuzz test is CPU-heavy)
-cd contracts && forge install foundry-rs/forge-std --no-commit && forge test --fork-url https://rpc.xlayer.tech   # read-only fork, no key
+cd contracts && forge install foundry-rs/forge-std && forge test --fork-url https://rpc.xlayer.tech   # read-only fork, no key
 # run the CLI from the repo root (the package's bin is a TypeScript file, so use tsx):
 printf '(a&b)|(a&c)|(b&c)\n' > maj.expr
 pnpm exec tsx packages/cli/src/index.ts optimize maj.expr --format expr --objective area
@@ -86,11 +86,11 @@ FabX's winner-take-the-bonus scoring means a beaten incumbent has to find out fa
   delegation designator failing an ERC1155 receiver check), not a Genesis-NFT/allowlist gate -
   4/4 plain-EOA addresses tested mint successfully (docs/NEW.md).
 - **Real on-chain tape-outs (2026-10-26):** the canonical ForgeRegistry (v2) is on X Layer at
-  `0xD304F09ba30c41196a6a3C66EBb117184306A06F`. Five showcase circuits (ids 6 to 10) are tapped out on the OrderGuard
+  `0xD304F09ba30c41196a6a3C66EBb117184306A06F`. Five showcase circuits (ids 6 to 10) are taped out on the OrderGuard
   processor and registered there with real depths (an earlier registry, v1 `0xAFDd108b0efCC1FF4d1e1d32579F80501774912d`, is superseded: its entries were registered at depth 0): GC-012, GC-037, GC-050, GC-014, GC-046 (docs/TAPEOUTS.md). Four additional test
   registrations (ids 11 to 14: GC-007, GC-016, GC-013, GC-022, from a separate test wallet) exist in v1 only. Four are
   verified on-chain via processor.eval; GC-046 (8 inputs) is attestation-only, not verified on-chain
-  via processor.eval. GC-039 was priced and fork-tested but not tapped out. These circuits are on
+  via processor.eval. GC-039 was priced and fork-tested but not taped out. These circuits are on
   OrderGuard, not a FabX PoD processor: no PoD or reward claim is made.
 - **Known gaps, still genuinely open**: no proven-exact synthesis above 3 inputs (13/46 real
   tasks still lose outright); FabX's hidden reward variables (F, K_task, n, m) remain publicly
@@ -104,6 +104,10 @@ has little standalone pricing power. Candidate value: batch coverage/speed acros
 monitoring for new tasks or beaten incumbents, registry listings, a paid API/CI tier for large
 circuits, and a watchtower/challenge service if FabX's challenge mechanism turns out to be
 rewarded (currently unknown). Needs at least one real builder conversation before the demo.
+
+## Demo video
+
+[forgeout-demo.mp4](https://github.com/davieslennox0/tapeout-forge/releases/download/demo-video/forgeout-demo.mp4) (2:25): the three steps (optimize, prove, tape out) on the live site, with real terminal output. Narration is synthetic. How it was made: [`docs/video/`](docs/video/).
 
 ## Try it
 

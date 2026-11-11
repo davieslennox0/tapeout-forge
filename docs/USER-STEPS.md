@@ -23,7 +23,7 @@ volatility on the day, not the limit. Record the deployed address immediately in
 ## 2. Tape out the chosen circuits
 
 Final list: GC-012, GC-037, GC-050, GC-014, GC-046 — all re-confirmed strictly
-better than reference (GC-039 was planned in Phase 7 but not tapped out; GC-046 is
+better than reference (GC-039 was planned in Phase 7 but not taped out; GC-046 is
 attestation-only (8 inputs), not verified on-chain via processor.eval; the other four are
 verified on-chain via processor.eval). Get the real calldata:
 ```
