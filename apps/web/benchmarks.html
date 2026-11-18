@@ -59,16 +59,46 @@
     (α=20,319, β_N=2,280.82, β_L=3,179.81, β_in=324.71, β_out=−1,237.10 gas), read 2026-11-18.
   </p>
 
-  <div id="headline" class="panel" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:28px 0"></div>
+  <p class="muted" style="max-width:48em;font-size:14px">
+    Not every circuit here is a real function — some are the source site's own physics-measurement
+    constructions (long single-input NAND chains, mass-duplicated parallel gates). Optimizing those
+    isn't a meaningful demo of anything, so this page classifies each circuit (reasons below) and
+    reports functional circuits as the headline, with probe circuits shown separately.
+  </p>
 
   <section>
-    <h2 style="font-size:20px;margin-bottom:16px">Full results</h2>
+    <h2 style="font-size:20px;margin-bottom:4px">Group A — functional circuits (headline)</h2>
+    <p class="muted" style="font-size:13px;margin:0 0 16px">Real combinational logic — this is the representative result.</p>
+    <div id="headlineA" class="panel" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px"></div>
     <div class="panel" style="overflow-x:auto;padding:0">
-      <table id="tbl"><thead><tr>
+      <table id="tblA"><thead><tr>
         <th>id</th><th>processor</th><th class="num">nIn/nOut</th><th class="num">gates before→after</th>
         <th class="num">reduction</th><th class="num">depth before→after</th><th class="num">chunks before→after</th>
         <th>equivalent</th><th>method</th>
       </tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section>
+    <h2 style="font-size:20px;margin-bottom:4px">Group B — probe circuits <span class="warn">(not representative)</span></h2>
+    <p class="muted" style="font-size:13px;margin:0 0 16px">
+      The source site's own cost-measurement constructions (NAND chains, mass-duplicated gates) — shown for
+      completeness, excluded from the headline.
+    </p>
+    <div id="headlineB" class="panel" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px"></div>
+    <div class="panel" style="overflow-x:auto;padding:0">
+      <table id="tblB"><thead><tr>
+        <th>id</th><th>processor</th><th class="num">nIn/nOut</th><th class="num">gates before→after</th>
+        <th class="num">reduction</th><th class="num">depth before→after</th><th class="num">chunks before→after</th>
+        <th>equivalent</th><th>method</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section>
+    <h2 style="font-size:20px;margin-bottom:16px">Classification reasons</h2>
+    <div class="panel" style="overflow-x:auto;padding:0">
+      <table id="tblClass"><thead><tr><th>id</th><th>processor</th><th>group</th><th>reason</th></tr></thead><tbody></tbody></table>
     </div>
   </section>
 
