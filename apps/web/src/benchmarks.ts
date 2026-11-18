@@ -25,41 +25,61 @@ function stat(label: string, value: string): string {
   return `<div><div class="dim mono" style="font-size:12px;letter-spacing:.04em;text-transform:uppercase">${label}</div><div style="font-size:26px;font-weight:600;margin-top:4px">${value}</div></div>`;
 }
 
+// Every stat here is computed over VERIFIED rows (equivalent===true) ONLY. Mixing an unproven
+// circuit's real-but-unconfirmed numbers into "improved"/"gas saved" previously let one unproven
+// circuit (#9) silently account for 939,698 of a 1,037,773 "verified" gas figure - fixed by
+// splitting verified from unproven before computing anything, not after.
 function renderGroup(headlineId: string, tableId: string, groupRows: CircuitResult[]) {
-  const valid = groupRows.filter((r) => r.afterMethod !== "FAILED");
-  const improved = valid.filter((r) => r.gatesAfter < r.gatesBefore);
-  const unprovenEquiv = valid.filter((r) => r.equivalent !== true);
-  const reductions = valid.map((r) => r.gateReductionPct).sort((a, b) => a - b);
-  const median = reductions.length ? reductions[Math.floor(reductions.length / 2)] : 0;
-  const best = Math.max(0, ...reductions);
-  const totalGasSaved = valid.reduce((s, r) => s + r.gasSavedPerStep, 0);
+  const nonFailed = groupRows.filter((r) => r.afterMethod !== "FAILED");
+  const verified = nonFailed.filter((r) => r.equivalent === true);
+  const unproven = nonFailed.filter((r) => r.equivalent !== true);
+  const improved = verified.filter((r) => r.gatesAfter < r.gatesBefore);
+  const alreadyOptimal = verified.filter((r) => r.gatesAfter === r.gatesBefore);
+  const best = Math.max(0, ...verified.map((r) => r.gateReductionPct));
+  const totalGasSaved = verified.reduce((s, r) => s + r.gasSavedPerStep, 0);
 
   document.getElementById(headlineId)!.innerHTML = [
-    stat("Improved", `${improved.length}/${valid.length}`),
-    stat("Median reduction", `${median.toFixed(1)}%`),
+    stat("Improved (verified)", `${improved.length}/${verified.length}`),
+    stat("Already optimal", `${alreadyOptimal.length}`),
     stat("Best reduction", `${best.toFixed(1)}%`),
-    stat("Gas saved / step", totalGasSaved.toLocaleString(undefined, { maximumFractionDigits: 0 })),
+    stat("Verified gas saved / step", totalGasSaved.toLocaleString(undefined, { maximumFractionDigits: 0 })),
   ].join("");
+  if (unproven.length) {
+    document.getElementById(headlineId)!.insertAdjacentHTML(
+      "afterend",
+      `<p class="muted" style="font-size:13px;margin:-4px 0 16px">${unproven.length} circuit(s) unproven - listed below in grey, not counted above.</p>`
+    );
+  }
 
-  const tbody = document.querySelector(`#${tableId} tbody`)!;
-  for (const r of groupRows) {
+  const row = (r: CircuitResult, isUnproven: boolean) => {
     const tr = document.createElement("tr");
     const eqClass = r.equivalent === true ? "ok" : r.equivalent === false ? "bad" : "warn";
     const eqText = r.equivalent === true ? "yes" : r.equivalent === false ? "NO (mismatch)" : "not proven";
+    if (isUnproven) tr.style.opacity = "0.55";
+    const em = isUnproven ? (s: string) => `<i>${s}</i>` : (s: string) => s;
     tr.innerHTML = `
       <td class="mono">#${r.circuitId}</td>
       <td class="mono"><a href="https://www.oklink.com/xlayer/address/${r.processor}" target="_blank" rel="noopener">${r.processor.slice(0, 8)}…${r.processor.slice(-4)}</a></td>
       <td class="num">${r.nIn}/${r.nOut}</td>
-      <td class="num mono">${r.gatesBefore}→${r.gatesAfter}</td>
-      <td class="num">${r.gateReductionPct.toFixed(1)}%</td>
+      <td class="num mono">${em(`${r.gatesBefore}→${r.gatesAfter}`)}</td>
+      <td class="num">${em(`${r.gateReductionPct.toFixed(1)}%`)}</td>
       <td class="num mono">${r.depthBefore}→${r.depthAfter}</td>
       <td class="num mono">${r.chunksBefore}→${r.chunksAfter}</td>
       <td class="${eqClass}">${eqText}</td>
       <td class="muted" style="font-size:12px">${r.afterMethod}</td>
     `;
-    tbody.appendChild(tr);
+    return tr;
+  };
+
+  const tbody = document.querySelector(`#${tableId} tbody`)!;
+  for (const r of verified) tbody.appendChild(row(r, false));
+  if (unproven.length) {
+    const sep = document.createElement("tr");
+    sep.innerHTML = `<td colspan="9" class="warn" style="font-size:12px;padding-top:14px">Unproven below - real numbers, not independently confirmed equivalent, not counted above</td>`;
+    tbody.appendChild(sep);
+    for (const r of unproven) tbody.appendChild(row(r, true));
   }
-  return { valid, improved, unprovenEquiv };
+  return { verified, improved, alreadyOptimal, unproven };
 }
 
 renderGroup("headlineA", "tblA", groupA);

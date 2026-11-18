@@ -19,7 +19,7 @@ The 23 circuits are not all the same kind of thing. Some are ordinary multi-inpu
 
 ## Group A — functional circuits (headline)
 
-6/14 circuits improved, 8 already optimal (0% reduction), median reduction 0.0%, best 30.0%. Total gas saved: 1,037,773 gas/step (455 gates saved total). 2 circuit(s) could not be proven equivalent within this run's limits - not counted as verified.
+4 of 12 verified functional circuits improved - 2 distinct designs: 20→14 gates, 22.0% gas/step (deployed 2x: #3968, #4746); 652→644 gates, 1.2% gas/step (deployed 2x: #5, #8). 8 already optimal. 2 unproven (listed separately below, not counted here). Best reduction: 30.0%. Verified gas saved: 63,863 gas/step (28 gates saved total).
 
 | id | processor | nIn/nOut | gates before→after | reduction | depth before→after | chunks before→after | equivalent | method | runtime |
 |---|---|---|---|---|---|---|---|---|---|
@@ -34,15 +34,20 @@ The 23 circuits are not all the same kind of thing. Some are ordinary multi-inpu
 | #8 | [0xf40eed…cb44](https://www.oklink.com/xlayer/address/0xf40eed30b189e11124901f73e1518daea69acb44) | 16/16 | 652→644 | 1.2% | 44→44 | 1→1 | ✓ yes | dedupe | 58.1s |
 | #1 | [0xf9bbdc…0a0f](https://www.oklink.com/xlayer/address/0xf9bbdc7f678eb3a49d338ffacdaad9339de50a0f) | 36/14 | 1193→1193 | 0.0% | 66→66 | 1→1 | ✓ yes | dedupe, both regressed or tied - kept original | 121.4s |
 | #1 | [0x8dff4c…6ef5](https://www.oklink.com/xlayer/address/0x8dff4c46c608aba7e48b77e213288d9f6bc36ef5) | 16/16 | 1204→1204 | 0.0% | 114→114 | 1→1 | ✓ yes | dedupe, both regressed or tied - kept original | 68.9s |
-| #3 | [0x832000…80fc](https://www.oklink.com/xlayer/address/0x832000e803885c572fa4ce0bf488ab9946b880fc) | 30/30 | 2355→2340 | 0.6% | 140→140 | 1→1 | ? not proven | dedupe | 121.4s |
 | #3 | [0xa93e80…2aa3](https://www.oklink.com/xlayer/address/0xa93e807fab41431827ebba57443fb687a95e2aa3) | 320/32 | 3829→3829 | 0.0% | 139→139 | 2→2 | ✓ yes | dedupe, both regressed or tied - kept original | 121.8s |
-| #9 | [0xb99c73…29aa](https://www.oklink.com/xlayer/address/0xb99c7388b6426367e496e902174a631f640729aa) | 24/12 | 5996→5584 | 6.9% | 437→437 | 2→2 | ? not proven | dedupe | 121.6s |
+
+**Unproven - not counted above.** Gate counts below are real (read from chain), but equivalence to the original could not be proven within this run's limits, so they are *not* included in "improved"/"gas saved"/"best" above.
+
+| id | processor | nIn/nOut | gates before→after (unverified) | reduction (unverified) | why unproven |
+|---|---|---|---|---|---|
+| #3 | [0x832000…80fc](https://www.oklink.com/xlayer/address/0x832000e803885c572fa4ce0bf488ab9946b880fc) | 30/30 | *2355→2340* | *0.6%* | SAT-DPLL, timed out after 120s - NOT PROVEN |
+| #9 | [0xb99c73…29aa](https://www.oklink.com/xlayer/address/0xb99c7388b6426367e496e902174a631f640729aa) | 24/12 | *5996→5584* | *6.9%* | SAT-DPLL, timed out after 120s - NOT PROVEN |
 
 ## Group B — probe circuits (not representative)
 
 These are the source site's own physics-measurement constructions (or, for #66, a shape strongly resembling one) - not hand-written functions. Included for completeness and transparency, but **excluded from the headline** because optimizing a NAND chain or deduplicating 10,000 identical redundant gates is not a meaningful demonstration of Forgeout's optimizer.
 
-8/9 circuits improved, 1 already optimal (0% reduction), median reduction 100.0%, best 100.0%. Total gas saved: 101,058,573 gas/step (44,308 gates saved total). All reported reductions independently verified equivalent.
+8 of 9 verified  circuits improved - 6 distinct designs: 500→1 gates, 98.1% gas/step (#6464); 709→1 gates, 98.7% gas/step (#3079); 1303→1 gates, 99.3% gas/step (#4859); 4983→1 gates, 99.8% gas/step (#731); 6821→1 gates, 99.9% gas/step (#782); 10000→1 gates, 99.9% gas/step (deployed 3x: #288, #314, #1387). 1 already optimal. 0 unproven (listed separately below, not counted here). Best reduction: 100.0%. Verified gas saved: 101,058,573 gas/step (44,308 gates saved total).
 
 | id | processor | nIn/nOut | gates before→after | reduction | depth before→after | chunks before→after | equivalent | method | runtime |
 |---|---|---|---|---|---|---|---|---|---|
@@ -65,7 +70,7 @@ These are the source site's own physics-measurement constructions (or, for #66, 
 | #49 | [0x7f2d31…4687](https://www.oklink.com/xlayer/address/0x7f2d3131a76d9aefb49f44657da6e1acac334687) | A | 6-in/4-out, 27 gates/depth 17 - plausible real multi-output logic, no degenerate structure. |
 | #6082 | [0x87bfca…f9a6](https://www.oklink.com/xlayer/address/0x87bfca3494aa228ff589ab9b642143a5e8c8f9a6) | A | 9-in/5-out, 66 gates/depth 17 - ordinary multi-output combinational shape. |
 | #977 | [0x69f663…62ca](https://www.oklink.com/xlayer/address/0x69f663931209096037474d7c20402232e5c762ca) | A | 9-in/5-out, 72 gates/depth 23 - ordinary multi-output combinational shape. |
-| #66 | [0xf5c2bc…4298](https://www.oklink.com/xlayer/address/0xf5c2bca1f38c6861f6d1303c0cbe840671ae4298) | B | 88 inputs but only 100 gates and depth 4 - too shallow/sparse to combine 88 independent inputs meaningfully; matches the kind of wide-nIn data point the energy law's beta_in (per-input-bit) term needs to fit, not realistic design. Not explicitly labeled by the source site - a structural judgment call, flagged as less certain than the others. |
+| #66 | [0xf5c2bc…4298](https://www.oklink.com/xlayer/address/0xf5c2bca1f38c6861f6d1303c0cbe840671ae4298) | B | 88 inputs but only 100 gates and depth 4 - too shallow/sparse to combine 88 independent inputs meaningfully; matches the kind of wide-nIn data point the energy law's beta_in (per-input-bit) term needs to fit, not realistic design. Not explicitly labeled by the source site - classified on structure only, 0% either way. |
 | #451 | [0x87bfca…f9a6](https://www.oklink.com/xlayer/address/0x87bfca3494aa228ff589ab9b642143a5e8c8f9a6) | A | 8-in/8-out, 147 gates/depth 11 - ordinary multi-output combinational shape. |
 | #2109 | [0x87bfca…f9a6](https://www.oklink.com/xlayer/address/0x87bfca3494aa228ff589ab9b642143a5e8c8f9a6) | A | 11-in/8-out, 248 gates/depth 35 - ordinary multi-output combinational shape. |
 | #6464 | [0x87bfca…f9a6](https://www.oklink.com/xlayer/address/0x87bfca3494aa228ff589ab9b642143a5e8c8f9a6) | B | 1 input, 500 gates, depth 500 = gates - a pure NAND chain on a single bit (computes nothing but repeated NOT), structurally identical to the depth-scaling probes the physics page's Law 1 ('depth is free') describes testing with a fixed-size chain at varying depth. |

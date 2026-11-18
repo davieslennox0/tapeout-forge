@@ -56,32 +56,58 @@ writeFileSync(join(__dirname, "results.csv"), csvLines.join("\n") + "\n");
 
 // --- Group stats ---
 interface GroupStats {
-  label: string; rows: CircuitResult[];
+  label: string; rows: CircuitResult[]; verified: CircuitResult[];
   improved: CircuitResult[]; alreadyOptimal: CircuitResult[]; unprovenEquiv: CircuitResult[];
-  median: number; best: number; totalGasSaved: number; totalGatesSaved: number;
+  best: number; totalGasSaved: number; totalGatesSaved: number;
 }
+// Every count and sum here is over VERIFIED rows (equivalent===true) ONLY. An unproven circuit's
+// gate/gas numbers are real but not independently confirmed to compute the same function - mixing
+// them into "improved"/"gas saved" would silently credit Forgeout for an unverified result (this
+// is exactly the bug a prior pass of this report had: #9 alone was 939,698 of the 1,037,773 gas
+// in a "gas saved" figure that claimed to exclude unproven circuits).
 function statsFor(label: string, rows: CircuitResult[]): GroupStats {
-  const valid = rows.filter((r) => r.afterMethod !== "FAILED");
-  const improved = valid.filter((r) => r.gatesAfter < r.gatesBefore);
-  const alreadyOptimal = valid.filter((r) => r.gatesAfter === r.gatesBefore);
-  const unprovenEquiv = valid.filter((r) => r.equivalent !== true);
-  const reductions = valid.map((r) => r.gateReductionPct).sort((a, b) => a - b);
-  const median = reductions.length ? reductions[Math.floor(reductions.length / 2)] : 0;
+  const nonFailed = rows.filter((r) => r.afterMethod !== "FAILED");
+  const verified = nonFailed.filter((r) => r.equivalent === true);
+  const unprovenEquiv = nonFailed.filter((r) => r.equivalent !== true);
+  const improved = verified.filter((r) => r.gatesAfter < r.gatesBefore);
+  const alreadyOptimal = verified.filter((r) => r.gatesAfter === r.gatesBefore);
+  const reductions = verified.map((r) => r.gateReductionPct);
   const best = Math.max(0, ...reductions);
-  const totalGasSaved = valid.reduce((s, r) => s + r.gasSavedPerStep, 0);
-  const totalGatesSaved = valid.reduce((s, r) => s + (r.gatesBefore - r.gatesAfter), 0);
-  return { label, rows, improved, alreadyOptimal, unprovenEquiv, median, best, totalGasSaved, totalGatesSaved };
+  const totalGasSaved = verified.reduce((s, r) => s + r.gasSavedPerStep, 0);
+  const totalGatesSaved = verified.reduce((s, r) => s + (r.gatesBefore - r.gatesAfter), 0);
+  return { label, rows, verified, improved, alreadyOptimal, unprovenEquiv, best, totalGasSaved, totalGatesSaved };
 }
 const groupA = statsFor("A", results.filter((r) => classify(r).group === "A"));
 const groupB = statsFor("B", results.filter((r) => classify(r).group === "B"));
 
+/** Collapses "improved" rows with identical (nIn,nOut,gatesBefore,gatesAfter) into one described
+ *  design - e.g. the same circuit deployed twice under two ids ends up as one design, not two. */
+function describeDesigns(rows: CircuitResult[]): string {
+  const byShape = new Map<string, CircuitResult[]>();
+  for (const r of rows) {
+    const key = `${r.nIn},${r.nOut},${r.gatesBefore},${r.gatesAfter}`;
+    (byShape.get(key) ?? byShape.set(key, []).get(key)!).push(r);
+  }
+  const designs = [...byShape.values()].map((group) => {
+    const r = group[0];
+    const gasPct = ((r.eStepBefore - r.eStepAfter) / r.eStepBefore) * 100;
+    const times = group.length > 1 ? ` (deployed ${group.length}x: ${group.map((g) => `#${g.circuitId}`).join(", ")})` : ` (#${r.circuitId})`;
+    return `${r.gatesBefore}→${r.gatesAfter} gates, ${gasPct.toFixed(1)}% gas/step${times}`;
+  });
+  return `${byShape.size} distinct design${byShape.size === 1 ? "" : "s"}: ${designs.join("; ")}`;
+}
+
 function headlineLine(g: GroupStats): string {
-  const valid = g.rows.filter((r) => r.afterMethod !== "FAILED");
+  const parts = [
+    `${g.improved.length} of ${g.verified.length} verified${g.label === "A" ? " functional" : ""} circuits improved` +
+      (g.improved.length ? ` - ${describeDesigns(g.improved)}` : ""),
+    `${g.alreadyOptimal.length} already optimal`,
+    `${g.unprovenEquiv.length} unproven (listed separately below, not counted here)`,
+  ];
   return (
-    `${g.improved.length}/${valid.length} circuits improved, ${g.alreadyOptimal.length} already optimal (0% reduction), ` +
-    `median reduction ${g.median.toFixed(1)}%, best ${g.best.toFixed(1)}%. Total gas saved: ` +
-    `${g.totalGasSaved.toLocaleString(undefined, { maximumFractionDigits: 0 })} gas/step (${g.totalGatesSaved.toLocaleString()} gates saved total). ` +
-    (g.unprovenEquiv.length ? `${g.unprovenEquiv.length} circuit(s) could not be proven equivalent within this run's limits - not counted as verified.` : "All reported reductions independently verified equivalent.")
+    parts.join(". ") +
+    `. Best reduction: ${g.best.toFixed(1)}%. Verified gas saved: ` +
+    `${g.totalGasSaved.toLocaleString(undefined, { maximumFractionDigits: 0 })} gas/step (${g.totalGatesSaved.toLocaleString()} gates saved total).`
   );
 }
 
@@ -96,6 +122,24 @@ function tableFor(rows: CircuitResult[]): string[] {
     lines.push(
       `| #${r.circuitId} | ${procShort} | ${r.nIn}/${r.nOut} | ${r.gatesBefore}→${r.gatesAfter} | ${r.gateReductionPct.toFixed(1)}% | ${r.depthBefore}→${r.depthAfter} | ${r.chunksBefore}→${r.chunksAfter} | ${eq} | ${r.afterMethod} | ${(r.runtimeMs / 1000).toFixed(1)}s |`
     );
+  }
+  return lines;
+}
+
+/** Every number in this table is real but UNVERIFIED - italicized throughout so it can never be
+ *  mistaken for a counted result when skimmed. Not included in any header figure above. */
+function unprovenTableFor(rows: CircuitResult[]): string[] {
+  if (!rows.length) return [];
+  const lines = [
+    "",
+    "**Unproven - not counted above.** Gate counts below are real (read from chain), but equivalence to the original could not be proven within this run's limits, so they are *not* included in \"improved\"/\"gas saved\"/\"best\" above.",
+    "",
+    "| id | processor | nIn/nOut | gates before→after (unverified) | reduction (unverified) | why unproven |",
+    "|---|---|---|---|---|---|",
+  ];
+  for (const r of rows) {
+    const procShort = `[${r.processor.slice(0, 8)}…${r.processor.slice(-4)}](${explorerLink(r.processor)})`;
+    lines.push(`| #${r.circuitId} | ${procShort} | ${r.nIn}/${r.nOut} | *${r.gatesBefore}→${r.gatesAfter}* | *${r.gateReductionPct.toFixed(1)}%* | ${r.equivMethod} |`);
   }
   return lines;
 }
@@ -180,7 +224,8 @@ lines.push("## Group A — functional circuits (headline)");
 lines.push("");
 lines.push(headlineLine(groupA));
 lines.push("");
-lines.push(...tableFor(groupA.rows));
+lines.push(...tableFor(groupA.verified));
+lines.push(...unprovenTableFor(groupA.unprovenEquiv));
 lines.push("");
 lines.push("## Group B — probe circuits (not representative)");
 lines.push("");
@@ -193,7 +238,8 @@ lines.push(
 lines.push("");
 lines.push(headlineLine(groupB));
 lines.push("");
-lines.push(...tableFor(groupB.rows));
+lines.push(...tableFor(groupB.verified));
+lines.push(...unprovenTableFor(groupB.unprovenEquiv));
 lines.push("");
 lines.push("### Per-circuit classification reasons");
 lines.push("");
@@ -231,6 +277,6 @@ lines.push(`- Netlists saved under \`netlists/\` include the exact read block an
 writeFileSync(join(__dirname, "results.md"), lines.join("\n") + "\n");
 
 console.log(JSON.stringify({
-  groupA: { improved: groupA.improved.length, total: groupA.rows.length, alreadyOptimal: groupA.alreadyOptimal.length, median: groupA.median, best: groupA.best, totalGasSaved: groupA.totalGasSaved, unprovenEquiv: groupA.unprovenEquiv.length },
-  groupB: { improved: groupB.improved.length, total: groupB.rows.length, alreadyOptimal: groupB.alreadyOptimal.length, median: groupB.median, best: groupB.best, totalGasSaved: groupB.totalGasSaved, unprovenEquiv: groupB.unprovenEquiv.length },
+  groupA: { improved: groupA.improved.length, verified: groupA.verified.length, total: groupA.rows.length, alreadyOptimal: groupA.alreadyOptimal.length, best: groupA.best, totalGasSaved: groupA.totalGasSaved, unprovenEquiv: groupA.unprovenEquiv.length },
+  groupB: { improved: groupB.improved.length, verified: groupB.verified.length, total: groupB.rows.length, alreadyOptimal: groupB.alreadyOptimal.length, best: groupB.best, totalGasSaved: groupB.totalGasSaved, unprovenEquiv: groupB.unprovenEquiv.length },
 }, null, 2));
