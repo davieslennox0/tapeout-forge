@@ -221,11 +221,23 @@ export function dedupe(nl: Netlist): Netlist {
   const trailingStart = 2 + nl.nIn + kept.length - nl.nOut;
   const alreadyTrailing = kept.length >= nl.nOut && outSignals.every((sig, k) => sig === trailingStart + k);
 
+  // BUG FIX (found via benchmarks/fourier39 against a real on-chain nOut=4 circuit, 2026-11-18):
+  // pushing each output's (NOT, NOT) pair back-to-back put only the LAST floor(nOut/2)-ish
+  // outputs' own second-NOT gates in the final "last nOut gates" trailing window - the others'
+  // designated output slots were actually some OTHER output's first-NOT buffer, silently
+  // computing the wrong function whenever nOut>1 and dedup needed this fallback at all (every
+  // nOut=1 case, and every nOut>1 case that happened to already land trailing, hid this). Fixed
+  // by pushing all first-NOT buffers first, then all second-NOT buffers last, so the trailing
+  // nOut gates are exactly one second-NOT per output, in order.
   const gates: Gate[] = [...kept];
   if (!alreadyTrailing) {
+    const firstNot: number[] = [];
     for (const sig of outSignals) {
       const n1 = 2 + nl.nIn + gates.length;
       gates.push({ kind: "NAND", a: sig, b: sig });
+      firstNot.push(n1);
+    }
+    for (const n1 of firstNot) {
       gates.push({ kind: "NAND", a: n1, b: n1 });
     }
   }

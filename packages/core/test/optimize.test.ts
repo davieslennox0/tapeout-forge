@@ -25,6 +25,24 @@ describe("dedupe", () => {
     expect(d.gates.length).toBeLessThan(nl.gates.length);
     expect(circuitDepth(d)).toBe(circuitDepth(nl));
   });
+
+  it("nOut>1, output not already trailing post-dedup: every output keeps its own correct value (regression for a real bug found via benchmarks/fourier39 against a real on-chain nOut=4 circuit, 2026-11-18 - the old code put only some outputs' real buffer gates in the final 'last nOut gates' slots, silently wiring others to the wrong signal)", () => {
+    const nl: Netlist = {
+      nIn: 2,
+      nOut: 2,
+      gates: [
+        { kind: "NAND", a: 2, b: 3 }, // signal4 (helper, kept)
+        { kind: "NAND", a: 4, b: 4 }, // signal5 (helper, kept)
+        { kind: "NAND", a: 2, b: 3 }, // signal6 (OUT0) - duplicate of signal4, gets deduped away
+        { kind: "NAND", a: 5, b: 5 }, // signal7 (OUT1) - unique, kept
+      ],
+    };
+    const before = exhaustiveTruthTable(nl);
+    const d = dedupe(nl);
+    expect(() => validate(d)).not.toThrow();
+    const after = exhaustiveTruthTable(d);
+    expect(after).toEqual(before); // both outputs, every input row - not just output 0
+  });
 });
 
 describe("computeC", () => {
