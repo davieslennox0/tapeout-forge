@@ -39,6 +39,19 @@ interface SourceRow {
 }
 const sourceRows: SourceRow[] = JSON.parse(readFileSync(join(__dirname, "source-circuits.json"), "utf8"));
 
+async function withRetry<T>(fn: () => Promise<T>, tries = 4): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      if (i < tries - 1) await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 async function rpcBlockNumber(): Promise<number> {
   const res = await fetch(RPC, {
     method: "POST",
@@ -114,9 +127,9 @@ function checkEquivWithTimeout(a: Netlist, b: Netlist, timeoutMs: number): { equ
 
 async function runOne(row: SourceRow): Promise<CircuitResult> {
   const t0 = Date.now();
-  const readBlock = await rpcBlockNumber();
-  const original = await fetchNetlist(RPC, row.processor, BigInt(row.circuitId));
-  const info = await getCircuitInfo(RPC, row.processor, BigInt(row.circuitId));
+  const readBlock = await withRetry(() => rpcBlockNumber());
+  const original = await withRetry(() => fetchNetlist(RPC, row.processor, BigInt(row.circuitId)));
+  const info = await withRetry(() => getCircuitInfo(RPC, row.processor, BigInt(row.circuitId)));
 
   const netlistBytes = serialize(original);
   writeFileSync(
@@ -202,7 +215,11 @@ async function runOne(row: SourceRow): Promise<CircuitResult> {
 async function main() {
   mkdirSync(join(__dirname, "netlists"), { recursive: true });
   const results: CircuitResult[] = [];
-  const rows = process.env.LIMIT ? sourceRows.slice(0, Number(process.env.LIMIT)) : sourceRows;
+  let rows = process.env.LIMIT ? sourceRows.slice(0, Number(process.env.LIMIT)) : sourceRows;
+  if (process.env.ONLY_IDS) {
+    const ids = new Set(process.env.ONLY_IDS.split(",").map(Number));
+    rows = rows.filter((r) => ids.has(r.circuitId));
+  }
   for (const row of rows) {
     process.stderr.write(`running ${row.chain} ${row.processor} #${row.circuitId} (nIn=${row.nIn}, gates=${row.gates})...\n`);
     try {
@@ -223,7 +240,20 @@ async function main() {
       });
     }
   }
-  writeFileSync(join(__dirname, "raw-results.json"), JSON.stringify(results, null, 2));
+  const outPath = join(__dirname, "raw-results.json");
+  let merged = results;
+  if (process.env.ONLY_IDS) {
+    try {
+      const prior: CircuitResult[] = JSON.parse(readFileSync(outPath, "utf8"));
+      const newIds = new Set(results.map((r) => `${r.processor}:${r.circuitId}`));
+      merged = [...prior.filter((r) => !newIds.has(`${r.processor}:${r.circuitId}`)), ...results];
+      // Keep source-circuits.json's original order.
+      merged.sort((a, b) => sourceRows.findIndex((r) => r.processor === a.processor && r.circuitId === a.circuitId) - sourceRows.findIndex((r) => r.processor === b.processor && r.circuitId === b.circuitId));
+    } catch {
+      merged = results;
+    }
+  }
+  writeFileSync(outPath, JSON.stringify(merged, null, 2));
   process.stderr.write(`\nDone: ${results.length} circuits.\n`);
 }
 
