@@ -23,5 +23,11 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL("./index.html", import.meta.url)),
+        benchmarks: fileURLToPath(new URL("./benchmarks.html", import.meta.url)),
+      },
+    },
   },
 });

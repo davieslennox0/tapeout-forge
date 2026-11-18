@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Forgeout — Benchmarks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0D0F11; --panel:#14171A; --panel2:#101315; --border:#262B31; --border2:#20252A; --border3:#3A4149;
+    --text:#E8EAEC; --muted:#B7BEC4; --dim:#8D969E; --accent:#E0904F; --accent2:#F2B07A; --ok:#6FCF97; --bad:#E07A7A;
+    --sans:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace; --display:'Bricolage Grotesque',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:16px;line-height:1.55}
+  a{color:var(--accent);text-decoration:none} a:hover{color:var(--accent2)}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 32px}
+  h1,h2,h3{font-family:var(--display);letter-spacing:-0.015em;margin:0}
+  .mono{font-family:var(--mono)}
+  .muted{color:var(--muted)} .dim{color:var(--dim)}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:28px}
+  .pill{font-size:13px;color:var(--dim);border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-family:var(--mono)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
+  th{color:var(--muted);font-weight:500;font-size:13px}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--accent2)}
+  section{scroll-margin-top:24px;margin:32px 0}
+</style>
+</head>
+<body>
+
+<header style="border-bottom:1px solid var(--border)">
+  <div class="wrap" style="padding:18px 32px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 32px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="1" y="1" width="26" height="26" rx="6" fill="#E0904F"/><path d="M8 9h7a5 5 0 0 1 0 10H8z" fill="none" stroke="#0D0F11" stroke-width="2.2" stroke-linejoin="round"/><circle cx="21.5" cy="14" r="1.6" fill="#0D0F11"/></svg>
+      <span class="display" style="font-family:var(--display);font-weight:700;font-size:20px">Forgeout</span>
+    </div>
+    <nav aria-label="Primary" style="display:flex;flex-wrap:wrap;gap:8px 28px;font-size:15px">
+      <a href="index.html">Optimizer</a>
+      <a href="benchmarks.html" style="color:var(--text)">Benchmarks</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" style="padding:40px 32px 80px">
+  <h1 style="font-size:32px;margin-bottom:12px">Forgeout vs. the public 39-circuit set</h1>
+  <p class="muted" style="max-width:48em">
+    Benchmarked against <a href="https://nand.aihashrate.stream/circuits/" target="_blank" rel="noopener">nand.aihashrate.stream/circuits/</a>
+    (39 real on-chain circuits, 16 on BSC + 23 on X Layer, all pure NAND / 0 latches). This page covers the 23 X Layer circuits.
+    Every netlist was fetched directly from its own processor contract on-chain, optimized, and independently re-verified equivalent
+    before being counted — not trusted from the optimizer's own internal check.
+  </p>
+  <p class="muted" style="max-width:48em;font-size:14px">
+    Gas estimates use the published energy-additive law
+    <code class="mono">E_step = α + β_N·N_NAND + β_L·N_LATCH + β_in·n_in + β_out·n_out</code>
+    and X Layer constants from <a href="https://nand.aihashrate.stream/physics/" target="_blank" rel="noopener">nand.aihashrate.stream/physics/</a>
+    (α=20,319, β_N=2,280.82, β_L=3,179.81, β_in=324.71, β_out=−1,237.10 gas), read 2026-11-18.
+  </p>
+
+  <div id="headline" class="panel" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:28px 0"></div>
+
+  <section>
+    <h2 style="font-size:20px;margin-bottom:16px">Full results</h2>
+    <div class="panel" style="overflow-x:auto;padding:0">
+      <table id="tbl"><thead><tr>
+        <th>id</th><th>processor</th><th class="num">nIn/nOut</th><th class="num">gates before→after</th>
+        <th class="num">reduction</th><th class="num">depth before→after</th><th class="num">chunks before→after</th>
+        <th>equivalent</th><th>method</th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section id="honesty">
+    <h2 style="font-size:20px;margin-bottom:16px">Notes</h2>
+    <div class="panel" id="notes" style="font-size:14px;line-height:1.7"></div>
+  </section>
+</main>
+
+<footer style="border-top:1px solid var(--border)">
+  <div class="wrap" style="padding:28px 32px;display:flex;flex-wrap:wrap;gap:12px 32px;justify-content:space-between;font-size:14px">
+    <span class="dim">Forgeout · working name</span>
+    <a href="https://6-2-272.tapekit.org/" class="dim">Mirror on TapeOut DeWEB</a>
+    <span class="dim">Built for X Layer TapeOut Accelerate</span>
+  </div>
+</footer>
+
+<script type="module" src="/src/benchmarks.ts"></script>
+</body>
+</html>
