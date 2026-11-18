@@ -140,15 +140,39 @@ Exit codes: 0 on success; 1 on any error or a verification/equivalence failure.
 `verify-onchain` and `calldata` are both read-only/dry-run - nothing here ever sends a real
 transaction (BUILD.md section 0, rule 4).
 
-## DeWEB (optional - not required for this hackathon)
+## Onchain frontend (DeWEB mirror, live on X Layer)
 
-Researched, not deployed (docs/DEWEB-RESEARCH.md): TapeKit/`tape://` really does cover X Layer
-(chainId 196, real contract addresses verified), and apps/web's static build already satisfies
-its relative-path/MIME/NFC constraints so it's publishable later without changes. Not actually
-published here - that requires owning a circuit NFT, opening its container, and a signed
-transaction, which Phase 3's rules forbid ("never spend"). Per BUILD.md section 2, DeWEB
-integration is explicitly optional for the hackathon submission. See docs/USER-STEPS.md for the
-checklist to actually do it with your own key.
+Optional for the hackathon (BUILD.md section 2), but actually published, on mainnet, as of
+2026-11-18: **https://6-2-272.tapekit.org/** (`tape://6.2.272.tape`), an onchain mirror of
+forgeout.xyz served entirely from TapeKit's `SiteRegistry` contract - no VPS, no server, nothing
+but chain reads once the Service Worker gateway installs.
+
+- **Container**: `0x43Eb520b45AAEDc24ED4cA3Ab29a6b384CF56956` - the ERC-6551 account of GC-012
+  (circuit id 6 on the OrderGuard processor, processor number 272 in TapeOut's factory), opened by
+  `tools/deweb-publish/deweb-publish.sh` for 0.08 OKB.
+- **Files**: `index.html` and the JS bundle (6 chunks, SPA fallback set to `index.html`), both
+  verified byte-for-byte against `SiteRegistry.fileInfo` (SHA-256, size and MIME all match the
+  local build exactly) immediately after publishing.
+- **Name**: `6.2.272.tape` bound via `DomainBinding.bind` for 120 months (the maximum; the fee
+  happened to read 0 OKB live at publish time).
+- **Contracts** (X Layer, chain 196; same addresses TapeKit uses on Base too): processor factory
+  `0x1f09DAeFA827f02CBb40967cc91b259763760761`, container opener
+  `0x536adD8F30f03b69f6fbF29d425A816A0dC50106`, SiteRegistry
+  `0xd6EFb7adCc9c83dC4924Ad56f6a8E4e969b9ADB6`, DomainBinding
+  `0x68809Fd2fb343aA57D0aeB7f33Defe477c9666f9`.
+- **Real cost**: 0.0807 OKB total (0.08 OKB open fee + gas for every file/fallback/bind call).
+- **To republish** after a code change: `pnpm --filter @forgeout/web build` with
+  `VITE_BASE=./ REVEAL_NETLISTS=true VITE_DEWEB_CONTAINER=0x43Eb520b45AAEDc24ED4cA3Ab29a6b384CF56956`
+  set, then `tools/deweb-publish/deweb-publish.sh apps/web/dist --container 0x43Eb520b45AAEDc24ED4cA3Ab29a6b384CF56956 --from <your address> --broadcast`
+  (it skips unchanged files by SHA-256, so a small change only republishes what moved).
+- **Research**: docs/DEWEB-RESEARCH.md. **Publisher**: tools/deweb-publish/ (generic, not
+  Forgeout-specific - built because no open-source DeWEB publishing CLI exists yet, per TapeKit's
+  own README).
+- **Known gap**: a one-shot headless Chromium render couldn't get past the gateway's bootstrap
+  page (it installs a Service Worker, then reloads - a one-shot `--dump-dom` can't follow that).
+  Byte-for-byte on-chain verification (above) is a stronger guarantee than a screenshot would be
+  anyway, since the Service Worker would only ever re-derive the same bytes from the same chain
+  state - but a real browser visit is the one check this README can't do for you.
 
 ## Silicon export (BUILD.md Phase 4, stretch)
 

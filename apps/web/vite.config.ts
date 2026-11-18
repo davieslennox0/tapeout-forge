@@ -7,7 +7,11 @@ import { fileURLToPath } from "node:url";
 // genuinely dead code in-browser, already gated behind try/catch that falls back gracefully
 // when the tool is simply missing from PATH (exactly what happens here). Aliased to tiny
 // throw-stubs so Vite/Rollup can statically bundle the named imports rather than failing.
+// VITE_BASE=./ for a DeWEB build (relative asset paths; the gateway doesn't serve from a real
+// root), matching the convention used by sibling TapeOut Accelerate projects (e.g. proofdrop's
+// `VITE_BASE=./ pnpm build`). Defaults to "/" for the ordinary forgeout.xyz build, unchanged.
 export default defineConfig({
+  base: process.env.VITE_BASE || "/",
   resolve: {
     alias: {
       "node:child_process": fileURLToPath(new URL("./src/stubs/child_process.ts", import.meta.url)),

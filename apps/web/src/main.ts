@@ -12,6 +12,21 @@ import { PRODUCT_NAME } from '../../../config/name.js';
 
 document.title = PRODUCT_NAME;
 
+// DeWEB mirror only: VITE_DEWEB_CONTAINER is set at build time (see apps/web/vite.config.ts /
+// tools/deweb-publish) for the DeWEB build variant only, never for the ordinary forgeout.xyz
+// build - so this badge never appears on a copy that isn't actually served that way.
+const deWebContainer = import.meta.env.VITE_DEWEB_CONTAINER as string | undefined;
+if (deWebContainer) {
+  const footerWrap = document.querySelector('footer .wrap');
+  if (footerWrap) {
+    const a = document.createElement('a');
+    a.href = `https://www.oklink.com/xlayer/address/${deWebContainer}`;
+    a.className = 'dim';
+    a.textContent = 'Served from TapeOut DeWEB on X Layer';
+    footerWrap.appendChild(a);
+  }
+}
+
 const $ = (id: string) => document.getElementById(id)!;
 let lastHex = '';
 
